@@ -45,4 +45,4 @@ include = ["env*", "doers*"]
 
 [tool.openenv]
 env_id = "TheSnitch-v0"
-entry_point = "server.app:app"
+entry_point = "server:app"
