@@ -1,0 +1,17 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+websockets>=12
+pydantic>=2.6
+numpy>=1.26
+torch>=2.2
+transformers>=4.40
+trl>=0.9
+datasets>=2.18
+anthropic>=0.30
+openai>=1.30
+matplotlib>=3.8
+tqdm>=4.66
+
+[dev]
+pytest>=8.0
+ruff>=0.4
