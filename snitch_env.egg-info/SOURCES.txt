@@ -14,9 +14,12 @@ env/trace_format.py
 snitch_env.egg-info/PKG-INFO
 snitch_env.egg-info/SOURCES.txt
 snitch_env.egg-info/dependency_links.txt
+snitch_env.egg-info/entry_points.txt
 snitch_env.egg-info/requires.txt
 snitch_env.egg-info/top_level.txt
-tests/test_rewards.py
+tests/test_doers.py
+tests/test_env.py
+tests/test_reward.py
 training/__init__.py
 training/eval.py
 training/plot_results.py

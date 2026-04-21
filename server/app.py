@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 # Make the project importable when running via `python server.py`
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -493,7 +493,12 @@ async def websocket_endpoint(websocket: WebSocket):
 # Entrypoint
 # ---------------------------------------------------------------------------
 
-if __name__ == "__main__":
+def main():
+    """Entry point for `server` console script (used by OpenEnv)."""
     import uvicorn
     port = int(os.environ.get("PORT", 7860))
-    uvicorn.run(app, host="0.0.0.0", port=port, reload=False)
+    uvicorn.run("server.app:app", host="0.0.0.0", port=port, reload=False)
+
+
+if __name__ == "__main__":
+    main()

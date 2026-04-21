@@ -20,4 +20,4 @@ USER appuser
 
 EXPOSE 7860
 
-CMD ["python", "server.py"]
+CMD ["server"]

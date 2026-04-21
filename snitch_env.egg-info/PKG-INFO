@@ -1,7 +1,7 @@
 Metadata-Version: 2.4
 Name: snitch-env
-Version: 0.1.0
-Summary: Scalable oversight environment for multi-agent auditing
+Version: 1.0.0
+Summary: Scalable oversight environment for LLM agent fleets
 Author: InfraNova
 Requires-Python: >=3.10
 Description-Content-Type: text/markdown
@@ -10,17 +10,21 @@ Requires-Dist: uvicorn[standard]>=0.29
 Requires-Dist: websockets>=12
 Requires-Dist: pydantic>=2.6
 Requires-Dist: numpy>=1.26
-Requires-Dist: torch>=2.2
-Requires-Dist: transformers>=4.40
-Requires-Dist: trl>=0.9
-Requires-Dist: datasets>=2.18
-Requires-Dist: anthropic>=0.30
+Requires-Dist: python-dotenv>=1.0
 Requires-Dist: openai>=1.30
-Requires-Dist: matplotlib>=3.8
-Requires-Dist: tqdm>=4.66
+Requires-Dist: openenv-core>=0.2.3
 Provides-Extra: dev
 Requires-Dist: pytest>=8.0; extra == "dev"
 Requires-Dist: ruff>=0.4; extra == "dev"
+Requires-Dist: httpx>=0.27; extra == "dev"
+Provides-Extra: training
+Requires-Dist: torch>=2.2; extra == "training"
+Requires-Dist: transformers>=4.40; extra == "training"
+Requires-Dist: trl>=0.12; extra == "training"
+Requires-Dist: peft>=0.13; extra == "training"
+Requires-Dist: datasets>=2.18; extra == "training"
+Requires-Dist: matplotlib>=3.8; extra == "training"
+Requires-Dist: tqdm>=4.66; extra == "training"
 
 # The Snitch
 

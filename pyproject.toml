@@ -21,6 +21,8 @@ dependencies = [
   "openai>=1.30",
   "openenv-core>=0.2.3",
 ]
+[project.scripts]
+server = "server.app:main"
 
 [project.optional-dependencies]
 dev = [
@@ -43,4 +45,4 @@ include = ["env*", "doers*"]
 
 [tool.openenv]
 env_id = "TheSnitch-v0"
-entry_point = "server:app"
+entry_point = "server.app:app"
