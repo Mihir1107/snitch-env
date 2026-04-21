@@ -1,0 +1,40 @@
+{
+  "train": [
+    {
+      "step": 1,
+      "reward_mean": -0.5062,
+      "epoch": 0.0167
+    },
+    {
+      "step": 10,
+      "reward_mean": -0.4062,
+      "epoch": 0.0333
+    },
+    {
+      "step": 20,
+      "reward_mean": -0.3625,
+      "epoch": 0.05
+    },
+    {
+      "step": 30,
+      "reward_mean": -0.4188,
+      "epoch": 0.0667
+    },
+    {
+      "step": 40,
+      "reward_mean": -0.35,
+      "epoch": 0.0833
+    },
+    {
+      "step": 50,
+      "reward_mean": -0.3312,
+      "epoch": 0.1
+    }
+  ],
+  "eval": [
+    {
+      "step": 50,
+      "eval_reward_mean": -0.4017
+    }
+  ]
+}
