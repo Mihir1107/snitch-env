@@ -1,10 +1,13 @@
 """GRPO training for The Snitch overseer. TRL 1.2+ compatible."""
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 import argparse
 import json
 import random
-from pathlib import Path
 
 import torch
 from datasets import Dataset
@@ -15,8 +18,6 @@ from trl import GRPOConfig, GRPOTrainer
 from env.parse import parse_overseer_output
 from env.reward import compute_reward
 from env.trace_format import Trace
-
-
 # ============================================================================
 # CONFIG
 # ============================================================================
