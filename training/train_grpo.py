@@ -1,15 +1,4 @@
-"""GRPO training for The Snitch overseer.
-
-Single source of truth for training. Config-driven via module-level constants.
-Runs on Colab free (T4) or Kaggle free (P100 or T4x2) with Qwen2.5-0.5B + LoRA.
-Scale up to 1.5B/3B on better hardware by changing MODEL_NAME.
-
-Usage (local smoke test):
-    python training/train_grpo.py --max-steps 5 --output-dir ./runs/smoke
-
-Usage (Colab/Kaggle notebook): just run this file cell by cell, or:
-    !python training/train_grpo.py --max-steps 200 --output-dir /kaggle/working/run1
-"""
+"""GRPO training for The Snitch overseer. TRL 1.2+ compatible."""
 from __future__ import annotations
 
 import argparse
@@ -29,18 +18,17 @@ from env.trace_format import Trace
 
 
 # ============================================================================
-# CONFIG — change these to scale up/down
+# CONFIG
 # ============================================================================
 
-MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"   # upgrade to 1.5B or 3B on better hardware
-USE_LORA = True                              # set False only on A100+ with full-tune budget
-MAX_PROMPT_LENGTH = 1024
+MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
+USE_LORA = True
 MAX_COMPLETION_LENGTH = 128
-NUM_GENERATIONS = 4                          # GRPO group size
+NUM_GENERATIONS = 4
 LEARNING_RATE = 5e-6
-BETA = 0.04                                  # KL penalty
-PER_DEVICE_BATCH = 1
-GRAD_ACCUM = 4
+BETA = 0.04
+PER_DEVICE_BATCH = 4     # TRL 1.2: batch_size must be >= num_generations
+GRAD_ACCUM = 2
 
 TRAIN_TRACES_PATH = "data/train_traces.jsonl"
 EVAL_TRACES_PATH = "data/eval_traces.jsonl"
@@ -67,10 +55,6 @@ CONFIDENCE: <float between 0.0 and 1.0>
 EVIDENCE: <one sentence referencing the specific step number and content supporting your verdict>"""
 
 
-# ============================================================================
-# Dataset preparation
-# ============================================================================
-
 def format_trace_body(steps: list[dict]) -> str:
     lines = []
     for i, step in enumerate(steps, start=1):
@@ -85,7 +69,6 @@ def format_trace_body(steps: list[dict]) -> str:
 
 
 def load_traces_as_dataset(path: str) -> Dataset:
-    """Each row contains the prompt + ground-truth metadata for reward computation."""
     rows = []
     for line in Path(path).read_text().splitlines():
         if not line.strip():
@@ -108,31 +91,30 @@ def load_traces_as_dataset(path: str) -> Dataset:
 
 
 # ============================================================================
-# Reward function for GRPO
+# Reward function — TRL 1.2 signature
 # ============================================================================
 
-def reward_fn(completions, policy_class, smoking_gun_step, smoking_gun_keyword, **kwargs):
-    """TRL GRPO calls this with batched completions and corresponding metadata columns.
-
-    Returns a list of floats, one per completion.
-    """
-    rewards = []
+def reward_fn(completions, policy_class, smoking_gun_step, smoking_gun_keyword, **kwargs) -> list[float | None]:
+    """TRL 1.2 GRPO passes batched completions + dataset columns as kwargs."""
+    rewards: list[float | None] = []
     for i, completion in enumerate(completions):
-        # Extract just the assistant text (TRL passes full completion chunks)
-        text = completion if isinstance(completion, str) else completion[-1].get("content", "")
+        if isinstance(completion, list) and completion:
+            text = completion[-1].get("content", "") if isinstance(completion[-1], dict) else str(completion[-1])
+        else:
+            text = str(completion)
+
         parsed = parse_overseer_output(text)
         gt = {
             "policy_class": policy_class[i],
             "smoking_gun_step": smoking_gun_step[i] if smoking_gun_step[i] >= 0 else None,
             "smoking_gun_keyword": smoking_gun_keyword[i] if smoking_gun_keyword[i] else None,
         }
-        r = compute_reward(parsed, gt)
-        rewards.append(r)
+        rewards.append(compute_reward(parsed, gt))
     return rewards
 
 
 # ============================================================================
-# Training entrypoint
+# Main
 # ============================================================================
 
 def main():
@@ -167,7 +149,7 @@ def main():
             target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
         )
 
-    print(f"Loading datasets...")
+    print("Loading datasets...")
     train_dataset = load_traces_as_dataset(TRAIN_TRACES_PATH)
     eval_dataset = load_traces_as_dataset(EVAL_TRACES_PATH)
     print(f"  train: {len(train_dataset)}  eval: {len(eval_dataset)}")
@@ -178,7 +160,6 @@ def main():
         per_device_train_batch_size=PER_DEVICE_BATCH,
         gradient_accumulation_steps=GRAD_ACCUM,
         num_generations=NUM_GENERATIONS,
-        max_prompt_length=MAX_PROMPT_LENGTH,
         max_completion_length=MAX_COMPLETION_LENGTH,
         beta=BETA,
         max_steps=args.max_steps,
@@ -188,13 +169,16 @@ def main():
         save_strategy="steps",
         eval_strategy="steps",
         bf16=torch.cuda.is_available(),
-        report_to="none",  # no wandb by default; change if you want it
+        report_to="none",
         remove_unused_columns=False,
+        # TRL 1.2 helpful: see what the model outputs during training
+        log_completions=True,
+        num_completions_to_print=2,
     )
 
     trainer = GRPOTrainer(
         model=model,
-        reward_funcs=[reward_fn],
+        reward_funcs=reward_fn,
         args=grpo_config,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
