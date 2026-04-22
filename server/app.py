@@ -260,11 +260,16 @@ def reset(req: Optional[ResetRequest] = None):
     store.total_reward = 0.0
     store.last_info = info
 
+    # Redact ground-truth fields from the pre-step response — a client must
+    # submit a verdict without seeing policy_class/policy_variant, otherwise
+    # the episode is trivially gameable.
+    public_info = {k: v for k, v in info.items() if k not in ("policy_class", "policy_variant")}
+
     return {
         "episode_id": store.episode_id,
         "task_id": req.task_id,
         "observation": obs,
-        "info": info,
+        "info": public_info,
     }
 
 
@@ -428,13 +433,15 @@ async def websocket_endpoint(websocket: WebSocket):
                 ws_total_reward = 0.0
                 ws_step_count = 0
                 ws_last_info = info
+                # Redact ground-truth fields before sending on the wire.
+                public_info = {k: v for k, v in info.items() if k not in ("policy_class", "policy_variant")}
                 await websocket.send_json({
                     "type": "reset",
                     "data": {
                         "episode_id": ws_episode_id,
                         "task_id": ws_task_id,
                         "observation": obs,
-                        "info": info,
+                        "info": public_info,
                     },
                 })
 
