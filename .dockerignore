@@ -1,0 +1,26 @@
+# Secrets — critical, must never ship in the image
+.env
+.env.*
+
+# Pre-filter data backups (see disjoint-splits migration)
+*.bak
+
+# Python build / cache / virtualenv artifacts
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+.venv/
+
+# Git + editor noise
+.git/
+.gitattributes
+.gitignore
+.DS_Store
+
+# Local lockfile (pip uses requirements.txt at build time)
+uv.lock
+
+# Local planning/memory for the Claude harness
+.claude/
