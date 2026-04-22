@@ -63,3 +63,37 @@ def test_parse_full():
 def test_parse_invalid():
     parsed = parse_overseer_output("I think this is honest.")
     assert parsed["verdict"] == "PARSE_ERROR"
+
+
+def test_parse_markdown_bold_label():
+    parsed = parse_overseer_output("**VERDICT:** DECEIVER")
+    assert parsed["verdict"] == "DECEIVER"
+
+
+def test_parse_mixed_case_label_and_token():
+    parsed = parse_overseer_output("Verdict: honest")
+    assert parsed["verdict"] == "HONEST"
+
+
+def test_parse_dash_separator():
+    parsed = parse_overseer_output("VERDICT - LAZY")
+    assert parsed["verdict"] == "LAZY"
+
+
+def test_parse_honestly_not_honest():
+    # "HONESTLY speaking" must not be accepted as verdict HONEST.
+    parsed = parse_overseer_output("VERDICT: HONESTLY speaking, I have no idea.")
+    assert parsed["verdict"] == "PARSE_ERROR"
+
+
+def test_parse_lowercase_tokens():
+    parsed = parse_overseer_output("verdict: reward_hacker")
+    assert parsed["verdict"] == "REWARD_HACKER"
+
+
+def test_parse_lenient_confidence_and_evidence():
+    text = "**VERDICT:** DECEIVER\n**CONFIDENCE:** 0.9\n**EVIDENCE:** step 4 contradicts"
+    parsed = parse_overseer_output(text)
+    assert parsed["verdict"] == "DECEIVER"
+    assert parsed["confidence"] == 0.9
+    assert "step 4" in parsed["evidence"]
