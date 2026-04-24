@@ -202,7 +202,7 @@ If you use The Snitch in research, please cite:
 ```
 @software{snitch2026,
   title  = {The Snitch: An OpenEnv environment for scalable AI oversight},
-  author = {Mandavia, Mihir and Mehta, Manas and Sachin, Haya},
+  author = {Mihir Mandavia and Manas Mehta and Haya Sachin},
   year   = {2026},
   url    = {https://github.com/Mihir1107/snitch-env}
 }
