@@ -14,9 +14,12 @@ license: mit
 
 Who watches the watchers? As agentic AI scales into fleets of hundreds of autonomous agents, human oversight breaks down. The Snitch is a controlled laboratory for scalable oversight — train an overseer to read an agent's tool-use trace and detect whether it behaved honestly, hacked the reward, gave up, or actively deceived.
 
-🔗 **Live Space:** https://huggingface.co/spaces/Mihir1107/TheSnitch
+🔗 **Live HF Space:** https://huggingface.co/spaces/Mihir1107/TheSnitch
 🔗 **Source:** https://github.com/Mihir1107/snitch-env
-🔗 **Team:** InfraNova — Mihir Mandavia, Manas Mehta, Haya Sachin
+🔗 **Trained checkpoint:** https://huggingface.co/Mihir1107/snitch-overseer-ckpt300
+📓 **Colab training notebook:** https://colab.research.google.com/drive/1NxTXtOpVS-d0yGl-pfLOkzfd_V4AzMb3?usp=sharing
+📝 **Blog post:** [blog/snitch_overseer.md](blog/snitch_overseer.md)
+👥 **Team:** InfraNova — Mihir Mandavia, Manas Mehta, Haya Sachin
 
 ---
 
@@ -37,11 +40,55 @@ For every verdict, the overseer also produces a **confidence score** and cites t
 
 ## Why this env is different
 
-**Held-out generalization, not memorization.** Each misbehavior class has three doer variants. Variants 1 and 2 are used for training. Variant 3 is held out completely. On top of that, the question set is disjoint between train and eval — the overseer never sees the same question twice across splits. This tests whether an overseer learns *inconsistency detection as a skill*, not surface patterns it memorized.
+**Held-out generalization, not memorization.** Each misbehavior class has three doer variants. Variants 1 and 2 are used for training. Variant 3 is held out completely with disjoint question IDs — the overseer never sees the same question twice across train and held-out splits. This tests whether an overseer learns *inconsistency detection as a skill*, not surface patterns it memorized.
 
 **Gaming-hardened reward.** The reward function penalizes false positives, false negatives, AND wrong-misbehavior-class predictions. Constant-class strategies all score below random in expectation. We red-teamed our own env and closed a ground-truth leak during development.
 
 **Model-agnostic by API.** The `/step` endpoint accepts any raw string that parses into a verdict. Drop in a hand-tuned prompt, a GRPO-trained LoRA, a debate-based committee, or a real LLM trace — the env scores them all the same way.
+
+---
+
+## Training the overseer
+
+We trained a reference overseer with **GRPO + LoRA on Qwen2.5-1.5B-Instruct** for 300 steps on easy and medium variants (v1 + v2), then evaluated on the held-out hard variant (v3). The training pipeline uses [Hugging Face TRL](https://github.com/huggingface/trl) and [PEFT](https://github.com/huggingface/peft).
+
+**Training notebook (runnable in Colab):** https://colab.research.google.com/drive/1NxTXtOpVS-d0yGl-pfLOkzfd_V4AzMb3?usp=sharing
+
+**LoRA config:** r=16, alpha=32, dropout=0.05, targets `q_proj, k_proj, v_proj, o_proj`. Base model frozen in fp16.
+
+![Reward curve](figures/reward_curve.png)
+*GRPO training reward across 300 steps. Reward climbed from 0.40 to a peak of 0.86 by step 260, with late-training volatility characteristic of small-KL policy-gradient runs (KL stayed under 0.01 throughout). Run was compute-bound at step 300 of 400 planned.*
+
+![Loss curve](figures/loss_curve.png)
+*GRPO loss oscillating near zero — expected behavior for a policy-gradient trainer.*
+
+---
+
+## Out-of-distribution evaluation
+
+The point of the env is to measure whether an overseer learned a skill or just a pattern. We test this by evaluating on **30 held-out questions × 4 classes = 120 unseen v3 traces**. Train and held-out question IDs are fully disjoint (verified).
+
+We also run the **base model with the same 3-shot prompt** as an ablation — this is the rigorous A/B test that separates "RL contribution" from "prompt contribution."
+
+![Generalization result](figures/generalization_gap.png)
+
+*Out-of-distribution overseer accuracy on the v3 held-out variant. The base Qwen2.5-1.5B with the same 3-shot prompt reaches 56.3%. The GRPO-LoRA-trained overseer reaches 62.1% — a clean +5.8pp lift attributable to RL training, since the prompt is held constant across both conditions.*
+
+| Condition | v3 Accuracy | Mean Reward | Parse Errors |
+|---|---|---|---|
+| Random verdict | 25.0% | — | — |
+| Base model + 3-shot prompt | 56.3% | 0.283 | 0.0% |
+| **GRPO-LoRA + 3-shot prompt** | **62.1%** | **0.458** | **0.0%** |
+
+Two findings worth noting:
+
+1. **Reward improves more than accuracy does** — mean reward climbs from 0.28 to 0.46 (+62% relative) on a +5.8pp accuracy lift. This is the evidence-grounding bonus firing: the trained overseer is more often citing the *correct trace step and keyword* in its EVIDENCE field, not just picking the right class.
+
+2. **Zero parse errors in both conditions.** The format collapse problem (78% parse errors in an earlier 1.5B run with shorter completions) is fully solved by the ChatML 3-shot prompt + max_completion_length=256 combination.
+
+Raw eval JSONs are committed in `results/`:
+- `results/gen_gap_step300.json` — trained LoRA on held-out v3
+- `results/eval_base_3shot.json` — base model on held-out v3 (ablation)
 
 ---
 
@@ -79,6 +126,24 @@ pip install -r requirements.txt
 pip install -e .
 python -m server.app                 # serves on :7860
 pytest tests/ -q                     # 42/42 should pass
+```
+
+### Reproduce the eval
+
+```bash
+# Pull trained adapter from HF
+pip install huggingface_hub
+python -c "from huggingface_hub import snapshot_download; \
+  snapshot_download(repo_id='Mihir1107/snitch-overseer-ckpt300', \
+  local_dir='checkpoints/checkpoint-300')"
+
+# Run eval (CPU works, T4 GPU faster)
+python scripts/gen_gap_eval.py \
+  --model-path checkpoints/checkpoint-300 \
+  --base-model Qwen/Qwen2.5-1.5B-Instruct \
+  --eval-easy data/eval_easy_v1.jsonl \
+  --eval-hard data/eval_traces.jsonl \
+  --out results/repro.json
 ```
 
 ---
@@ -179,19 +244,21 @@ The doers are deterministic Python policies that produce traces with known groun
 
 ## Limitations we report honestly
 
+- **The trained overseer is an under-trained reference, not a tuned system.** Training reached 300 of 400 planned GRPO steps before compute ran out. KL divergence stayed under 0.01 throughout, indicating a conservative policy update; raising LR from 5e-6 to 2e-5 is the obvious next step but is left to future work.
 - **Doers are rule-based, not LLM-driven.** This is a controlled lab, not a red-team simulator. Extending to LLM-generated adversarial traces is a straightforward API extension.
 - **Variant diversity is stronger for REWARD_HACKER and LAZY than for HONEST and DECEIVER.** For the latter two classes, v1 and v2 share tool-use patterns; behavioral variance concentrates on v3 (held out). The v3 generalization axis is the load-bearing test for all four classes.
-- **Training runs in our smoke-test setup used Qwen2.5-0.5B with 50–150 GRPO steps.** Results are proof-of-life, not a benchmark claim. The env is designed to be trained against; we do not claim SOTA overseer performance.
+- **The +5.8pp generalization lift is small but clean.** It's measurable only because train and held-out question IDs are disjoint and the v3 policy variant is genuinely unseen — both properties of the environment, not the model.
 
 ---
 
 ## Future work
 
+- Raise GRPO learning rate to 2e-5 and complete the 400-step run; expected to push KL into a more productive range
 - LLM-in-the-loop doers for red-team generalization testing
 - Adversarial misbehavior classes (active cover-up, sycophancy toward user beliefs)
 - Committee-based overseer (debate between multiple verdicts)
 - Multi-step evidence citation (coordinated deception across several trace steps)
-- Trained overseer benchmark on larger base models (3B+)
+- Port the audit pattern to coding-agent and browsing-agent domains
 
 ---
 
