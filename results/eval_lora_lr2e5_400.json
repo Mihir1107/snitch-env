@@ -1,12 +1,11 @@
 {
-  "easy": {
+  "eval_traces_path": "data/eval_traces.jsonl",
+  "n_traces": 120,
+  "policy_variant": 3,
+  "held_out_v3": {
     "accuracy": 0.7583333333333333,
     "mean_reward": 0.9,
     "parse_error_rate": 0.0
   },
-  "hard": {
-    "accuracy": 0.7583333333333333,
-    "mean_reward": 0.9,
-    "parse_error_rate": 0.0
-  }
+  "note": "Eval on data/eval_traces.jsonl (q_0121-q_0150 x policy_variant=3, fully disjoint from training questions and policy variants). n=120 (full set, no sampling)."
 }

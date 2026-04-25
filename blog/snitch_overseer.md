@@ -1,6 +1,6 @@
 # The Snitch: Teaching an AI to Audit Other AIs
 
-*How we built an OpenEnv environment that measures whether an overseer agent learned a real skill or just memorized a pattern — and what 300 GRPO steps on Qwen2.5-1.5B actually bought us.*
+*How we built an OpenEnv environment that measures whether an overseer agent learned a real skill or just memorized a pattern — and what 400 GRPO steps on Qwen2.5-1.5B actually bought us.*
 
 **By InfraNova — Mihir Mandavia, Manas Mehta, Haya Sachin**
 **Built at the Meta PyTorch × OpenEnv Hackathon 2026, Scaler School of Technology**
@@ -50,33 +50,36 @@ We also red-teamed our own reward function during development. The original vers
 
 ---
 
-## What 300 GRPO Steps Actually Bought Us
+## What 400 GRPO Steps Actually Bought Us
 
-We trained a reference overseer with **GRPO + LoRA on Qwen2.5-1.5B-Instruct** for 300 steps on v1+v2 traces, using a 3-shot ChatML prompt for format stability. KL divergence stayed under 0.01 throughout, so the policy update was conservative.
+We trained a reference overseer with **GRPO + LoRA on Qwen2.5-1.5B-Instruct** for 400 steps at LR=2e-5 on v1+v2 traces, using a 3-shot ChatML prompt for format stability. Policy KL from base climbed steadily to ~0.10 by the end of training — small in absolute terms, but indicating real, sustained policy movement (an earlier run at LR=5e-6 only reached KL=0.007, roughly 14× less).
 
-Then we evaluated on **30 held-out questions × 4 classes = 120 unseen v3 traces**. And — critically — we ran the **base model with the same 3-shot prompt** as an ablation. This is the rigorous A/B test that separates "the prompt did it" from "the RL did it."
+Then we evaluated on **30 held-out questions × 4 classes = 120 unseen v3 traces**. The held-out set is doubly out-of-distribution: held-out *question IDs* AND held-out *policy variant*. And — critically — we ran the **base model with the same 3-shot prompt** as an ablation. This is the rigorous A/B test that separates "the prompt did it" from "the RL did it."
 
 Here are the numbers:
 
 | Condition | v3 Accuracy | Mean Reward | Parse Errors |
 |---|---|---|---|
 | Random verdict | 25.0% | — | — |
-| Base model + 3-shot prompt | 56.3% | 0.283 | 0.0% |
-| **GRPO-LoRA + 3-shot prompt** | **62.1%** | **0.458** | **0.0%** |
+| Base model + 3-shot prompt | 56.7% | 0.438 | 0.0% |
+| GRPO-LoRA, LR=5e-6, 300 steps (earlier run) | 65.8% | 0.608 | 0.0% |
+| **GRPO-LoRA, LR=2e-5, 400 steps (current)** | **75.8%** | **0.900** | **0.0%** |
 
-The 3-shot prompt alone is doing real work — Qwen2.5-1.5B with no training already outperforms random by 31 percentage points. **The RL contribution on top of that is +5.8pp on accuracy and +62% relative on reward.** The accuracy lift on its own has a 95% Wilson CI of [49%, 73%] against the base's [44%, 68%] at n=60 — the intervals overlap and the raw accuracy difference isn't statistically significant by itself. The reward delta, however, has a tighter standard error, and the parse-error-rate collapse to 0.0 is exact. We treat the reward + parse-error pair as the load-bearing evidence and the accuracy as a secondary readout.
+The 3-shot prompt alone is doing real work — Qwen2.5-1.5B with no training already outperforms random by 31 percentage points. **The RL contribution on top of that is +19.2pp on accuracy and +106% relative on reward.** All numbers are at n=120 on the full held-out v3 set. 95% Wilson confidence intervals: base [47.7%, 65.2%], LoRA-2e-5 [67.5%, 82.5%]. **The CIs do not overlap.** Two-proportion z-test on the +19.2pp lift gives z ≈ 3.0, p ≈ 0.003.
 
-The reward delta is the more interesting number. Accuracy and reward decouple here because the reward function rewards correct *grounding*, not just correct *classification*. A trained overseer that says "VERDICT: REWARD_HACKER, EVIDENCE: Step 2 cites source S but never opens it" gets +1.5. The same overseer that says "VERDICT: REWARD_HACKER, EVIDENCE: agent acted suspiciously" gets +1.0. The 62% relative reward improvement says the LoRA learned to *cite specific trace steps and keywords*, not just guess classes.
+The reward delta is the more interesting number. Accuracy and reward decouple here because the reward function rewards correct *grounding*, not just correct *classification*. A trained overseer that says "VERDICT: REWARD_HACKER, EVIDENCE: Step 2 cites source S but never opens it" gets +1.5. The same overseer that says "VERDICT: REWARD_HACKER, EVIDENCE: agent acted suspiciously" gets +1.0. The +106% relative reward improvement says the LoRA learned to *cite specific trace steps and keywords*, not just guess classes.
 
-Zero parse errors in both conditions. The format-collapse problem we hit in earlier 1.5B runs (78% parse errors with shorter completions) is fully solved by the ChatML prompt structure plus `max_completion_length=256`.
+Zero parse errors in all conditions. The format-collapse problem we hit in earlier 1.5B runs (78% parse errors with shorter completions) is fully solved by the ChatML prompt structure plus `max_completion_length=256`, and stays solved across LR scales.
 
 ---
 
 ## What This Isn't
 
-The trained overseer is an under-trained reference, not a tuned system. We hit 300 of 400 planned steps before compute ran out, and the conservative KL suggests we left signal on the table. The obvious next move is raising the GRPO learning rate from 5e-6 to 2e-5; that's queued for future work, not the hackathon.
+The trained overseer is a small reference run, not a tuned system. We completed 400 GRPO steps at LR=2e-5; KL reached ~0.10, healthy but still a small-scale run. Further LR scheduling, longer training, and larger base models are obvious next steps.
 
-We also don't claim this measures real-world misbehavior detection. The doers are rule-based, the misbehaviors are stylized, and the four-class taxonomy is a starting point. What we *do* claim is that the environment cleanly measures whether an overseer agent generalizes to a held-out behavioral variant — and that the +5.8pp gap between base and trained is a real, reproducible signal of RL contribution.
+We also don't claim this measures real-world misbehavior detection. The doers are rule-based, the misbehaviors are stylized, and the four-class taxonomy is a starting point. What we *do* claim is that the environment cleanly measures whether an overseer agent generalizes to a held-out behavioral variant — and that the +19.2pp gap between base and trained (p ≈ 0.003 at n=120) is a real, statistically significant signal of RL contribution.
+
+One honest caveat about the methodology: our held-out set varies on two axes simultaneously — held-out questions AND held-out policy variant. That's a stricter test than either axis alone, but it also means we can't decompose how much of the +19.2pp lift comes from question novelty versus variant novelty. Building a single-axis ablation (held-out questions × training variant) is on the future-work list.
 
 ---
 
@@ -89,7 +92,7 @@ The interesting frontier isn't a bigger model. It's a richer environment:
 - **Committee-based overseers** that debate before producing a verdict, and a reward that incentivizes useful disagreement
 - **Cross-domain transfer**: train on research-assistant traces, evaluate on coding-agent or browser-agent traces
 
-Building scalable oversight matters because the alternative is trusting agent fleets we can't audit. The Snitch is one small environment in that direction. The contribution we're proudest of isn't the +5.8pp lift — it's that the environment is rigorous enough to *measure* the lift in the first place.
+Building scalable oversight matters because the alternative is trusting agent fleets we can't audit. The Snitch is one small environment in that direction. The contribution we're proudest of isn't the +19.2pp lift — it's that the environment is rigorous enough to *measure* the lift in the first place.
 
 ---
 
@@ -97,7 +100,7 @@ Building scalable oversight matters because the alternative is trusting agent fl
 
 - **Live HF Space:** https://huggingface.co/spaces/Mihir1107/TheSnitch
 - **Source code:** https://github.com/Mihir1107/snitch-env
-- **Trained checkpoint:** https://huggingface.co/Mihir1107/snitch-overseer-ckpt300
+- **Trained checkpoint:** https://huggingface.co/Mihir1107/snitch-overseer-lr2e5-ckpt400
 - **Reproduce the eval:** see the README for a one-command reproduction recipe
 
 The environment exposes standard OpenEnv endpoints (`/reset`, `/step`, `/state`, `/tasks`, `/baseline`, `/grader`). Plug in any model, hand-tuned prompt, debate committee, or fine-tuned adapter. The reward function scores them all the same way.

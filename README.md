@@ -88,7 +88,6 @@ Raw eval JSONs are committed in `results/`:
 - `results/eval_lora_lr2e5_400.json` — current trained LoRA (LR=2e-5, 400 steps) on held-out v3
 - `results/eval_base_full120.json` — base model on held-out v3 (ablation)
 - `results/eval_old_ckpt_n120.json` — earlier LoRA (LR=5e-6, 300 steps) on held-out v3, re-evaluated at n=120 for apples-to-apples comparison
-- `results/gen_gap_step300.json`, `results/eval_base_3shot.json` — earlier n=60 eval JSONs (legacy, kept for historical record)
 
 ---
 

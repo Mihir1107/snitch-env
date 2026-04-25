@@ -1,7 +1,7 @@
 """Dump per-class confusion matrices + evidence-bonus hit rates for base, ckpt300, ckpt400.
 
 Mirrors scripts/gen_gap_eval.py loader/prompt/generation exactly so headline
-numbers stay apples-to-apples with results/gen_gap_step300.json. Differences:
+numbers stay apples-to-apples with results/eval_lora_lr2e5_400.json. Differences:
 
 - Evaluates the FULL 120 held-out v3 traces (no random sampling)
 - Emits the per-class confusion matrix (HONEST/REWARD_HACKER/LAZY/DECEIVER + PARSE_ERROR)
