@@ -1,3 +1,22 @@
 .env
 .venv
 .pytest_cache
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# backups
+*.bak
+
+# env
+.venv/
+.env
+# Auto-generated / local-only
+.DS_Store
+**/__pycache__/
+checkpoints/
+data/eval_easy_v1.jsonl
+baseline_check.py
