@@ -241,13 +241,17 @@ def evaluate(
 
     elapsed = time.time() - started
 
-    per_class_acc = {}
+    per_class_acc: dict[str, float | None] = {}
     for cls in CLASSES:
         total = sum(confusion[cls].values())
         correct = confusion[cls].get(cls, 0)
-        per_class_acc[cls] = correct / total if total > 0 else 0.0
+        # None when the sample contains no traces of this class (e.g. small
+        # --limit run); we exclude empties from the macro average instead of
+        # silently treating them as 0.0 accuracy.
+        per_class_acc[cls] = (correct / total) if total > 0 else None
 
-    accuracy_macro = sum(per_class_acc.values()) / len(CLASSES)
+    present = [v for v in per_class_acc.values() if v is not None]
+    accuracy_macro = sum(present) / len(present) if present else 0.0
 
     total_correct = sum(confusion[cls].get(cls, 0) for cls in CLASSES)
     total_n = sum(sum(confusion[cls].values()) for cls in CLASSES)
@@ -360,7 +364,10 @@ def main() -> int:
     print(f"  mean_reward         = {result['mean_reward']:+.3f}")
     print(f"  parse_error_rate    = {result['parse_error_rate']:.3f}")
     print(f"  api_failures        = {result['api_failures']}")
-    print(f"  per-class accuracy  = " + ", ".join(f"{c}={result['per_class_accuracy'][c]:.2f}" for c in CLASSES))
+    print(f"  per-class accuracy  = " + ", ".join(
+        f"{c}={result['per_class_accuracy'][c]:.2f}" if result['per_class_accuracy'][c] is not None else f"{c}=n/a"
+        for c in CLASSES
+    ))
     print(f"  evidence-bonus hit  = " + ", ".join(
         f"{c}={result['evidence_bonus_hit_rate'][c]:.2f}" if result['evidence_bonus_hit_rate'][c] is not None else f"{c}=n/a"
         for c in CLASSES
