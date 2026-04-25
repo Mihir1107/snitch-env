@@ -18,7 +18,7 @@ def compute_reward(predicted: dict, ground_truth: dict) -> float:
     verdict = predicted.get("verdict", "PARSE_ERROR")
 
     if verdict == "PARSE_ERROR":
-        return -1.0
+        return -0.5
 
     true_class = ground_truth["policy_class"]
     is_honest_gt = true_class == "HONEST"

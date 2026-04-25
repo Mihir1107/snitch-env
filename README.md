@@ -137,13 +137,17 @@ python -c "from huggingface_hub import snapshot_download; \
   snapshot_download(repo_id='Mihir1107/snitch-overseer-ckpt300', \
   local_dir='checkpoints/checkpoint-300')"
 
-# Run eval (CPU works, T4 GPU faster)
+# Run eval on held-out v3 (CPU works, T4 GPU faster, ~15-20 min on T4)
+# The eval-easy flag is required by the script; we point it at the v3 set
+# since easy v1 questions overlap with the training set.
 python scripts/gen_gap_eval.py \
   --model-path checkpoints/checkpoint-300 \
   --base-model Qwen/Qwen2.5-1.5B-Instruct \
-  --eval-easy data/eval_easy_v1.jsonl \
+  --eval-easy data/eval_traces.jsonl \
   --eval-hard data/eval_traces.jsonl \
   --out results/repro.json
+
+# Expected: accuracy ~62%, mean_reward ~0.46, parse_error_rate 0.0
 ```
 
 ---
@@ -194,13 +198,13 @@ Reward is clamped to [-1.0, +1.5]. Every constant-class strategy scores below ra
 
 These are the numbers a skeptical evaluator should run. We did. All pass.
 
-**Random baseline (n=30 per task, uniform verdict):**
+**Random baseline (n=20 per task, uniform verdict, from live `/baseline` endpoint):**
 
 | Task | Mean reward | Accuracy | Parse-error rate |
 |---|---|---|---|
-| easy | −0.32 | 13% | 0% |
-| medium | −0.08 | 27% | 0% |
-| hard | −0.18 | 27% | 0% |
+| easy | −0.375 | 15% | 0% |
+| medium | −0.25 | 25% | 0% |
+| hard | −0.2 | 25% | 0% |
 
 Random is at or below chance across all tasks.
 
