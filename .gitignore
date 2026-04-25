@@ -1,23 +1,29 @@
-.env
-.venv
-.pytest_cache
-# macOS
-.DS_Store
-
 # Python
 __pycache__/
+**/__pycache__/
 *.pyc
-
-# backups
+*.pyo
 *.bak
 
-# env
+# Virtualenv / secrets
 .venv/
 .env
-# Auto-generated / local-only
+
+# Test / build artifacts
+.pytest_cache/
+*.egg-info/
+
+# OS noise
 .DS_Store
-**/__pycache__/
+
+# Training artifacts (large, regenerated per run)
 checkpoints/
-data/eval_easy_v1.jsonl
-baseline_check.py
 runs/
+
+# Ad-hoc local scratch — must never be committed
+baseline_check.py
+
+# Contaminated legacy eval set (questions overlap with training).
+# Kept in .gitignore so a stale local copy can never sneak back into the repo.
+# Real held-out eval is data/eval_traces.jsonl (q_0121-0150, variant 3).
+data/eval_easy_v1.jsonl

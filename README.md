@@ -74,7 +74,7 @@ We also run the **base model with the same 3-shot prompt** as an ablation — th
 | GRPO-LoRA, LR=5e-6, 300 steps (earlier run) | 65.8% | 0.608 | 0.0% |
 | **GRPO-LoRA, LR=2e-5, 400 steps (current)** | **75.8%** | **0.900** | **0.0%** |
 
-*All numbers at n=120 on held-out v3 (full eval set, no sampling). 95% Wilson confidence intervals: base [47.7%, 65.2%], LoRA-2e-5 [67.5%, 82.5%]. **CIs do not overlap.** Two-proportion z-test on the +19.2pp accuracy lift: z ≈ 3.0, p ≈ 0.003. Mean reward more than doubled (+105.7% relative). Parse-error floor of 0.0 is exact across all conditions.*
+*All numbers at n=120 on held-out v3 (full eval set, no sampling). Accuracy is macro-averaged over the four misbehavior classes (HONEST / REWARD_HACKER / LAZY / DECEIVER, 30 traces each); on a perfectly balanced set this equals plain accuracy. 95% Wilson confidence intervals: base [47.7%, 65.2%], LoRA-2e-5 [67.5%, 82.5%]. **CIs do not overlap.** Two-proportion z-test on the +19.2pp accuracy lift: z ≈ 3.0, p ≈ 0.003. Mean reward more than doubled (+105.7% relative). Parse-error floor of 0.0 is exact across all conditions. Train/eval disjointness (q_0001-0120 × variants {1,2} vs q_0121-0150 × variant 3) is reproduced by `python scripts/verify_split.py`; snapshot output in `results/data_split_verification.txt`.*
 
 Three findings worth noting:
 

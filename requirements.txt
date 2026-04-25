@@ -1,1 +1,17 @@
-openenv-core>=0.2.3
+# Runtime dependencies for the FastAPI server (server/app.py + env/*).
+# Pinned to the versions we verified end-to-end against openenv-core==0.2.3.
+# Loosen at your own risk; the HF Space Dockerfile installs from this file
+# directly, so a bad pin breaks the live demo.
+#
+# Training-only deps (torch / transformers / trl / peft) live in
+# pyproject.toml under [project.optional-dependencies].training and are
+# installed in Colab, not in the server image.
+
+fastapi==0.136.0
+uvicorn[standard]==0.44.0
+websockets==16.0
+pydantic==2.13.3
+numpy==2.4.4
+python-dotenv==1.2.2
+openai==2.32.0
+openenv-core==0.2.3

@@ -1,0 +1,7 @@
+train_traces.jsonl: n=960, unique question IDs=120, variants=[1, 2]
+eval_traces.jsonl:  n=120, unique question IDs=30, variants=[3]
+
+question ID overlap (train ∩ eval): 0
+variant     overlap (train ∩ eval): 0
+
+Result: PASS — train and eval are disjoint on BOTH question IDs and policy variants (doubly OOD).
