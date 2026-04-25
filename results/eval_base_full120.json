@@ -1,0 +1,12 @@
+{
+  "easy": {
+    "accuracy": 0.5666666666666667,
+    "mean_reward": 0.4375,
+    "parse_error_rate": 0.0
+  },
+  "hard": {
+    "accuracy": 0.5666666666666667,
+    "mean_reward": 0.4375,
+    "parse_error_rate": 0.0
+  }
+}
