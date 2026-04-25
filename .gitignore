@@ -20,3 +20,4 @@ __pycache__/
 checkpoints/
 data/eval_easy_v1.jsonl
 baseline_check.py
+runs/
