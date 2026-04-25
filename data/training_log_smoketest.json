@@ -1,0 +1,20 @@
+{
+  "_note": "50-step CPU smoke-test log (Qwen2.5-0.5B, LR=5e-6). NOT the headline run. The 400-step headline numbers (Qwen2.5-1.5B, LR=2e-5) are visualized in figures/training_curves.png and come from the Colab notebook's trainer_state.json (notebooks/snitch_train_full_proof.ipynb). This file exists only as proof that the local training loop wires up cleanly without GPU.",
+  "_smoketest_config": {
+    "model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "learning_rate": 5e-6,
+    "max_steps": 50,
+    "purpose": "wiring sanity check, not performance"
+  },
+  "train": [
+    {"step": 1,  "reward_mean": -0.5062, "epoch": 0.0167},
+    {"step": 10, "reward_mean": -0.4062, "epoch": 0.0333},
+    {"step": 20, "reward_mean": -0.3625, "epoch": 0.05  },
+    {"step": 30, "reward_mean": -0.4188, "epoch": 0.0667},
+    {"step": 40, "reward_mean": -0.35,   "epoch": 0.0833},
+    {"step": 50, "reward_mean": -0.3312, "epoch": 0.1   }
+  ],
+  "eval": [
+    {"step": 50, "eval_reward_mean": -0.4017}
+  ]
+}

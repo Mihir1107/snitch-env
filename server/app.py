@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from env.snitch_env import SnitchEnv
 from env.parse import parse_overseer_output
@@ -146,7 +146,11 @@ class ResetRequest(BaseModel):
 
 
 class StepRequest(BaseModel):
-    action: str  # raw overseer completion
+    # 16 KB cap on the raw action string. The overseer's output is at most
+    # ~256 generated tokens (≈1.5 KB); 16 KB is generous safety margin and
+    # protects /step from oversized payloads (DoS surface). FastAPI returns
+    # a structured 422 if exceeded.
+    action: str = Field(..., max_length=16384)
 
 
 class GraderRequest(BaseModel):

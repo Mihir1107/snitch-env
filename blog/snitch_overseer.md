@@ -65,9 +65,13 @@ Here are the numbers:
 | GRPO-LoRA, LR=5e-6, 300 steps (earlier run) | 65.8% | 0.608 | 0.0% |
 | **GRPO-LoRA, LR=2e-5, 400 steps (current)** | **75.8%** | **0.900** | **0.0%** |
 
-The 3-shot prompt alone is doing real work — Qwen2.5-1.5B with no training already outperforms random by 31 percentage points. **The RL contribution on top of that is +19.2pp on accuracy and +106% relative on reward.** All numbers are at n=120 on the full held-out v3 set. 95% Wilson confidence intervals: base [47.7%, 65.2%], LoRA-2e-5 [67.5%, 82.5%]. **The CIs do not overlap.** Two-proportion z-test on the +19.2pp lift gives z ≈ 3.0, p ≈ 0.003.
+The 3-shot prompt alone is doing real work — Qwen2.5-1.5B with no training already outperforms random by 31 percentage points. **The RL contribution on top of that is +19.2pp on accuracy and +106% relative on reward.** All numbers are at n=120 on the full held-out v3 set. 95% Wilson confidence intervals: base [47.7%, 65.2%], LoRA-2e-5 [67.5%, 82.5%]. **The CIs do not overlap.** Two-proportion z-test (pooled, two-sided) on the +19.2pp lift gives **z = 3.14, p = 0.0017**.
+
+We report **the final checkpoint of the 400-step run** — not best-of-eight across `checkpoint-{50, 100, ..., 400}`. The held-out set was logged as telemetry during training (eval-reward every 50 steps) and used to iterate on learning rate and KL beta, but training stopped at the pre-budgeted 400 steps regardless of where the eval curve happened to peak. That keeps the lift a final-checkpoint estimate with telemetry-loop influence on hyperparameters, not a fully pre-registered one.
 
 The reward delta is the more interesting number. Accuracy and reward decouple here because the reward function rewards correct *grounding*, not just correct *classification*. A trained overseer that says "VERDICT: REWARD_HACKER, EVIDENCE: Step 2 cites source S but never opens it" gets +1.5. The same overseer that says "VERDICT: REWARD_HACKER, EVIDENCE: agent acted suspiciously" gets +1.0. The +106% relative reward improvement says the LoRA learned to *cite specific trace steps and keywords*, not just guess classes.
+
+One honest qualification on the bonus: it is most informative for the DECEIVER class. DECEIVER traces have 29 distinct smoking-gun keywords across 30 v3 examples — the keyword is the first content word of the false claim, so getting the bonus requires the overseer to read the agent's claimed answer and notice it contradicts the evidence. For REWARD_HACKER and LAZY the smoking-gun keyword is a class-indicative token by construction (`"submit_answer"` for REWARD_HACKER, `"unclear"`/`"not sure"` for LAZY), so the bonus on those classes is a structural-recall signal rather than free-form grounding. We could weight DECEIVER bonuses higher to remove this asymmetry; we chose simplicity in the v0 reward.
 
 Zero parse errors in all conditions. The format-collapse problem we hit in earlier 1.5B runs (78% parse errors with shorter completions) is fully solved by the ChatML prompt structure plus `max_completion_length=256`, and stays solved across LR scales.
 
@@ -77,7 +81,7 @@ Zero parse errors in all conditions. The format-collapse problem we hit in earli
 
 The trained overseer is a small reference run, not a tuned system. We completed 400 GRPO steps at LR=2e-5; KL reached ~0.10, healthy but still a small-scale run. Further LR scheduling, longer training, and larger base models are obvious next steps.
 
-We also don't claim this measures real-world misbehavior detection. The doers are rule-based, the misbehaviors are stylized, and the four-class taxonomy is a starting point. What we *do* claim is that the environment cleanly measures whether an overseer agent generalizes to a held-out behavioral variant — and that the +19.2pp gap between base and trained (p ≈ 0.003 at n=120) is a real, statistically significant signal of RL contribution.
+We also don't claim this measures real-world misbehavior detection. The doers are rule-based, the misbehaviors are stylized, and the four-class taxonomy is a starting point. What we *do* claim is that the environment cleanly measures whether an overseer agent generalizes to a held-out behavioral variant — and that the +19.2pp gap between base and trained (z = 3.14, p = 0.0017 at n=120) is a real, statistically significant signal of RL contribution.
 
 One honest caveat about the methodology: our held-out set varies on two axes simultaneously — held-out questions AND held-out policy variant. That's a stricter test than either axis alone, but it also means we can't decompose how much of the +19.2pp lift comes from question novelty versus variant novelty. Building a single-axis ablation (held-out questions × training variant) is on the future-work list.
 

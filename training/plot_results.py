@@ -1,7 +1,11 @@
 """Generate hero chart from saved training log.
 
 Usage:
-    python training/plot_results.py --log data/training_log.json --out figures/reward_curve.png
+    python training/plot_results.py --log data/training_log_smoketest.json --out figures/reward_curve.png
+
+Note: data/training_log_smoketest.json is the 50-step CPU smoke-test log,
+NOT the 400-step headline run. The headline run's curves come from the Colab
+notebook's trainer_state.json and are visualized in figures/training_curves.png.
 """
 from __future__ import annotations
 
@@ -73,7 +77,7 @@ def plot_reward_curve(log_path: str, out_path: str) -> None:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--log", default="data/training_log.json")
+    ap.add_argument("--log", default="data/training_log_smoketest.json")
     ap.add_argument("--out", default="figures/reward_curve.png")
     args = ap.parse_args()
     plot_reward_curve(args.log, args.out)

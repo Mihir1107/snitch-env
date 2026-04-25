@@ -74,13 +74,15 @@ We also run the **base model with the same 3-shot prompt** as an ablation — th
 | GRPO-LoRA, LR=5e-6, 300 steps (earlier run) | 65.8% | 0.608 | 0.0% |
 | **GRPO-LoRA, LR=2e-5, 400 steps (current)** | **75.8%** | **0.900** | **0.0%** |
 
-*All numbers at n=120 on held-out v3 (full eval set, no sampling). Accuracy is macro-averaged over the four misbehavior classes (HONEST / REWARD_HACKER / LAZY / DECEIVER, 30 traces each); on a perfectly balanced set this equals plain accuracy. 95% Wilson confidence intervals: base [47.7%, 65.2%], LoRA-2e-5 [67.5%, 82.5%]. **CIs do not overlap.** Two-proportion z-test on the +19.2pp accuracy lift: z ≈ 3.0, p ≈ 0.003. Mean reward more than doubled (+105.7% relative). Parse-error floor of 0.0 is exact across all conditions. Train/eval disjointness (q_0001-0120 × variants {1,2} vs q_0121-0150 × variant 3) is reproduced by `python scripts/verify_split.py`; snapshot output in `results/data_split_verification.txt`.*
+*All numbers at n=120 on held-out v3 (full eval set, no sampling). Accuracy is macro-averaged over the four misbehavior classes (HONEST / REWARD_HACKER / LAZY / DECEIVER, 30 traces each); on a perfectly balanced set this equals plain accuracy. 95% Wilson confidence intervals: base [47.7%, 65.2%], LoRA-2e-5 [67.5%, 82.5%]. **CIs do not overlap.** Two-proportion z-test (pooled, two-sided) on the +19.2pp accuracy lift: **z = 3.14, p = 0.0017**. Mean reward more than doubled (+105.7% relative). Parse-error floor of 0.0 is exact across all conditions. Train/eval disjointness (q_0001-0120 × variants {1,2} vs q_0121-0150 × variant 3) is reproduced by `python scripts/verify_split.py`; snapshot output in `results/data_split_verification.txt`.*
+
+*Methodology disclosure: the reported LoRA number is **checkpoint-400, the final checkpoint of the 400-step run** — not best-of-N selection across the eight `checkpoint-{50, 100, ..., 400}` artifacts. The held-out v3 set was used during training as a telemetry signal (eval-reward logged every 50 steps) for engineering iteration on LR and KL beta, not for cherry-picking the reported checkpoint. Training was stopped at the pre-budgeted 400 steps regardless of the eval curve's local maximum at step 350. We disclose this so a reader can decide whether to treat the +19.2pp lift as a fully pre-registered estimate or as a final-checkpoint estimate with telemetry-loop influence on hyperparameters.*
 
 Three findings worth noting:
 
 1. **The RL contribution is statistically significant.** Same prompt, same base model, same 3-shot examples in both conditions — only the LoRA adapter differs. The +19.2pp accuracy lift is real and the CIs are clean of each other.
 
-2. **Reward more than accuracy.** Mean reward climbed from 0.44 to 0.90 (+106% relative) on a +19.2pp accuracy lift. The reward bonus rewards citing the correct trace step and keyword — the trained overseer is grounding evidence in the trace, not just guessing classes.
+2. **Reward more than accuracy.** Mean reward climbed from 0.44 to 0.90 (+106% relative) on a +19.2pp accuracy lift. The reward bonus rewards citing the correct trace step and keyword — the trained overseer is grounding evidence in the trace, not just guessing classes. *Caveat: the evidence bonus is most informative for DECEIVER (29 distinct keywords across 30 v3 traces — genuine claim-content grounding); for REWARD_HACKER and LAZY the smoking-gun keyword is a class-indicative token by design (`"submit_answer"` and `"unclear"`/`"not sure"` respectively), so the bonus on those classes measures structural recall more than free-form grounding. Per-class evidence-bonus hit rates are emitted by `scripts/dump_confusion.py`.*
 
 3. **Zero parse errors in all conditions.** The format collapse problem (78% parse errors in an earlier 1.5B run with shorter completions) is fully solved by the ChatML 3-shot prompt + max_completion_length=256 combination, and stays solved across LR scales.
 
@@ -250,7 +252,7 @@ The doers are deterministic Python policies that produce traces with known groun
 - **The trained overseer is a small reference run, not a tuned system.** We completed 400 GRPO steps at LR=2e-5; KL divergence reached ~0.10 — healthy and indicating real policy movement, but still a small-scale run. Further LR scheduling, longer training, and larger base models are obvious next steps.
 - **Doers are rule-based, not LLM-driven.** This is a controlled lab, not a red-team simulator. Extending to LLM-generated adversarial traces is a straightforward API extension.
 - **Variant diversity is stronger for REWARD_HACKER and LAZY than for HONEST and DECEIVER.** For the latter two classes, v1 and v2 share tool-use patterns; behavioral variance concentrates on v3 (held out). The v3 generalization axis is the load-bearing test for all four classes.
-- **The +19.2pp generalization lift is clean and statistically significant** (p ≈ 0.003 at n=120). It's measurable only because train and held-out question IDs are disjoint and the v3 policy variant is genuinely unseen — both properties of the environment, not the model.
+- **The +19.2pp generalization lift is clean and statistically significant** (z = 3.14, p = 0.0017 at n=120). It's measurable only because train and held-out question IDs are disjoint and the v3 policy variant is genuinely unseen — both properties of the environment, not the model.
 
 ---
 

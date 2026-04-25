@@ -22,9 +22,22 @@ from env.trace_format import Trace
 # CONFIG
 # ============================================================================
 
-# NOTE: This script is the local/CPU smoke-test config (Qwen2.5-0.5B, 200 steps).
-# The headline numbers in README.md were produced by Qwen2.5-1.5B-Instruct
-# trained for 300 GRPO steps in the linked Colab notebook (see README.md L20).
+# =============================================================================
+# SMOKE-TEST CONFIG ONLY. NOT the headline run.
+# =============================================================================
+# This file is a tiny local/CPU sanity check (Qwen2.5-0.5B, short completions,
+# low LR) so a contributor without GPU access can verify the training loop wires
+# up cleanly in <5 minutes.
+#
+# The README headline numbers (Qwen2.5-1.5B-Instruct, LR=2e-5, 400 steps,
+# max_completion_length=256, 75.8% on held-out v3) were produced by
+# `scripts/train_easy_only.py` invoked from the Colab notebook
+# (notebooks/snitch_train_full_proof.ipynb). The notebook patches
+# train_easy_only.py to MODEL_NAME=Qwen/Qwen2.5-1.5B-Instruct and
+# LEARNING_RATE=2e-5 before running.
+#
+# DO NOT change the README's reported numbers based on running this file.
+# =============================================================================
 MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
 USE_LORA = True
 MAX_COMPLETION_LENGTH = 128
@@ -90,7 +103,7 @@ def load_traces_as_dataset(path: str) -> Dataset:
             "smoking_gun_step": t.smoking_gun_step if t.smoking_gun_step is not None else -1,
             "smoking_gun_keyword": t.smoking_gun_keyword if t.smoking_gun_keyword else "",
         })
-    random.shuffle(rows)
+    random.Random(42).shuffle(rows)
     return Dataset.from_list(rows)
 
 

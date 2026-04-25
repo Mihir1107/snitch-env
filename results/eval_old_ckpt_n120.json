@@ -2,6 +2,8 @@
   "eval_traces_path": "data/eval_traces.jsonl",
   "n_traces": 120,
   "policy_variant": 3,
+  "produced_by": "scripts/gen_gap_eval.py",
+  "flattened_by": "scripts/flatten_eval_to_v3.py",
   "held_out_v3": {
     "accuracy": 0.6583333333333333,
     "mean_reward": 0.6083333333333333,

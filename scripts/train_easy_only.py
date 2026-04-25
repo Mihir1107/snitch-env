@@ -125,7 +125,7 @@ def load_traces_as_dataset(path: str, variants: list[int] | None = None) -> Data
             "smoking_gun_step": t.smoking_gun_step if t.smoking_gun_step is not None else -1,
             "smoking_gun_keyword": t.smoking_gun_keyword if t.smoking_gun_keyword else "",
         })
-    random.shuffle(rows)
+    random.Random(42).shuffle(rows)
     return Dataset.from_list(rows)
 
 

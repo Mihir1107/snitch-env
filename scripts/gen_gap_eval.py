@@ -182,7 +182,13 @@ def evaluate_traces(model, tokenizer, traces: list[Trace]):
     }
 
 
-def load_and_sample_traces(path: str, n: int = 60, seed: int = 42) -> list[Trace]:
+def load_and_sample_traces(path: str, n: int = 120, seed: int = 42) -> list[Trace]:
+    """Load traces, optionally subsample to n. Default n=120 = full held-out v3 set.
+
+    The default was n=60 in earlier development; the headline numbers in
+    README.md are at n=120 (full set, no sampling), so the default was raised
+    to reproduce the headline without requiring CLI flags.
+    """
     traces = []
     for line in Path(path).read_text().splitlines():
         if line.strip():
