@@ -9,6 +9,10 @@ Supported providers
 - ``openai`` — chat completions via the OpenAI v2 SDK. Requires
   ``OPENAI_API_KEY`` in the environment. Models: ``gpt-4o-mini``,
   ``gpt-4o``, ``gpt-5-mini``, etc.
+- ``anthropic`` — messages API via the Anthropic SDK. Requires
+  ``ANTHROPIC_API_KEY`` in the environment AND ``pip install anthropic``
+  (not in the server image's requirements.txt by default — eval-only dep).
+  Models: ``claude-haiku-4-5``, ``claude-sonnet-4-5``, ``claude-opus-4-7``.
 - ``hf`` — Hugging Face Inference Providers via ``huggingface_hub``.
   Requires ``HF_TOKEN`` in the environment. Models:
   ``meta-llama/Llama-3.1-8B-Instruct``, ``Qwen/Qwen2.5-7B-Instruct``, etc.
@@ -80,10 +84,15 @@ PRICING_USD_PER_1K = {
     "gpt-4o":          {"in": 0.00250, "out": 0.01000},
     "gpt-5-mini":      {"in": 0.00025, "out": 0.00200},
     "gpt-5":           {"in": 0.00125, "out": 0.01000},
+    # Anthropic — Apr 2026 list pricing, conservative estimates.
+    # Cross-check on the live invoice; this column is presentation only.
+    "claude-haiku-4-5":   {"in": 0.00080, "out": 0.00400},
+    "claude-sonnet-4-5":  {"in": 0.00300, "out": 0.01500},
+    "claude-opus-4-7":    {"in": 0.01500, "out": 0.07500},
     # HF Inference Providers — pricing varies per provider; report 0 and let
     # the reader cross-check. Tokens are still counted from the response.
-    "meta-llama/Llama-3.1-8B-Instruct":  {"in": 0.0,    "out": 0.0},
-    "Qwen/Qwen2.5-7B-Instruct":          {"in": 0.0,    "out": 0.0},
+    "meta-llama/Llama-3.1-8B-Instruct":   {"in": 0.0,    "out": 0.0},
+    "Qwen/Qwen2.5-7B-Instruct":           {"in": 0.0,    "out": 0.0},
     "mistralai/Mistral-7B-Instruct-v0.3": {"in": 0.0,    "out": 0.0},
 }
 
@@ -131,6 +140,52 @@ def call_openai(model: str, messages: list[dict], temperature: float, max_tokens
     return _retry(_do)
 
 
+def call_anthropic(model: str, messages: list[dict], temperature: float, max_tokens: int) -> tuple[str, int, int]:
+    # Anthropic's Messages API takes the system prompt as a separate top-level
+    # field, NOT a "system" role in messages. Extract it here so the same
+    # OpenAI-shaped messages list works across providers without the caller
+    # having to know about the asymmetry.
+    try:
+        from anthropic import Anthropic
+    except ImportError as exc:
+        raise APIError("anthropic SDK not installed; pip install anthropic") from exc
+    client = Anthropic()  # reads ANTHROPIC_API_KEY from env
+
+    system_text = ""
+    user_messages: list[dict] = []
+    for m in messages:
+        if m.get("role") == "system":
+            system_text = m["content"]
+        else:
+            user_messages.append({"role": m["role"], "content": m["content"]})
+
+    def _do():
+        kwargs: dict = {
+            "model": model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": user_messages,
+        }
+        if system_text:
+            kwargs["system"] = system_text
+        resp = client.messages.create(**kwargs)
+        # resp.content is a list of content blocks; for our prompt the model
+        # returns a single text block. Concatenate text blocks defensively.
+        text_parts = []
+        for block in resp.content:
+            if getattr(block, "type", None) == "text":
+                text_parts.append(block.text)
+            elif hasattr(block, "text"):
+                text_parts.append(block.text)
+        text = "".join(text_parts)
+        usage = getattr(resp, "usage", None)
+        in_tok = getattr(usage, "input_tokens", 0) if usage else 0
+        out_tok = getattr(usage, "output_tokens", 0) if usage else 0
+        return text, in_tok, out_tok
+
+    return _retry(_do)
+
+
 def call_hf(model: str, messages: list[dict], temperature: float, max_tokens: int) -> tuple[str, int, int]:
     from huggingface_hub import InferenceClient
     client = InferenceClient(token=os.environ.get("HF_TOKEN"))
@@ -154,6 +209,7 @@ def call_hf(model: str, messages: list[dict], temperature: float, max_tokens: in
 
 PROVIDERS = {
     "openai": call_openai,
+    "anthropic": call_anthropic,
     "hf": call_hf,
 }
 
@@ -313,6 +369,9 @@ def main() -> int:
 
     if args.provider == "openai" and not os.environ.get("OPENAI_API_KEY"):
         print("ERROR: OPENAI_API_KEY not set", file=sys.stderr)
+        return 2
+    if args.provider == "anthropic" and not os.environ.get("ANTHROPIC_API_KEY"):
+        print("ERROR: ANTHROPIC_API_KEY not set", file=sys.stderr)
         return 2
     if args.provider == "hf" and not os.environ.get("HF_TOKEN"):
         print("ERROR: HF_TOKEN not set", file=sys.stderr)
