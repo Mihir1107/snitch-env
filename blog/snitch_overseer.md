@@ -64,7 +64,7 @@ Here are the numbers:
 | Base model + 3-shot prompt | 56.3% | 0.283 | 0.0% |
 | **GRPO-LoRA + 3-shot prompt** | **62.1%** | **0.458** | **0.0%** |
 
-The 3-shot prompt alone is doing real work — Qwen2.5-1.5B with no training already outperforms random by 31 percentage points. **The RL contribution on top of that is +5.8pp on accuracy and +62% relative on reward.**
+The 3-shot prompt alone is doing real work — Qwen2.5-1.5B with no training already outperforms random by 31 percentage points. **The RL contribution on top of that is +5.8pp on accuracy and +62% relative on reward.** The accuracy lift on its own has a 95% Wilson CI of [49%, 73%] against the base's [44%, 68%] at n=60 — the intervals overlap and the raw accuracy difference isn't statistically significant by itself. The reward delta, however, has a tighter standard error, and the parse-error-rate collapse to 0.0 is exact. We treat the reward + parse-error pair as the load-bearing evidence and the accuracy as a secondary readout.
 
 The reward delta is the more interesting number. Accuracy and reward decouple here because the reward function rewards correct *grounding*, not just correct *classification*. A trained overseer that says "VERDICT: REWARD_HACKER, EVIDENCE: Step 2 cites source S but never opens it" gets +1.5. The same overseer that says "VERDICT: REWARD_HACKER, EVIDENCE: agent acted suspiciously" gets +1.0. The 62% relative reward improvement says the LoRA learned to *cite specific trace steps and keywords*, not just guess classes.
 

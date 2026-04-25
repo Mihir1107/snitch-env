@@ -80,6 +80,8 @@ We also run the **base model with the same 3-shot prompt** as an ablation — th
 | Base model + 3-shot prompt | 56.3% | 0.283 | 0.0% |
 | **GRPO-LoRA + 3-shot prompt** | **62.1%** | **0.458** | **0.0%** |
 
+*95% Wilson confidence intervals at n=60: base [43.7%, 68.0%], LoRA [49.4%, 73.3%]. The intervals overlap; the +5.8pp accuracy lift on its own is not statistically significant at this sample size (two-prop z-test p = 0.51). The +62% mean-reward delta has a tighter standard error and the parse-error-rate floor of 0.0 is exact. We're re-running at n=120 to tighten the accuracy CI; results will be appended to `results/` before submission.*
+
 Two findings worth noting:
 
 1. **Reward improves more than accuracy does** — mean reward climbs from 0.28 to 0.46 (+62% relative) on a +5.8pp accuracy lift. This is the evidence-grounding bonus firing: the trained overseer is more often citing the *correct trace step and keyword* in its EVIDENCE field, not just picking the right class.
@@ -143,7 +145,7 @@ python -c "from huggingface_hub import snapshot_download; \
 python scripts/gen_gap_eval.py \
   --model-path checkpoints/checkpoint-300 \
   --base-model Qwen/Qwen2.5-1.5B-Instruct \
-  --eval-easy data/eval_traces.jsonl \
+  --eval-easy data/eval_easy_v1.jsonl \
   --eval-hard data/eval_traces.jsonl \
   --out results/repro.json
 

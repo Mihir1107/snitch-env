@@ -22,6 +22,9 @@ from env.trace_format import Trace
 # CONFIG
 # ============================================================================
 
+# NOTE: This script is the local/CPU smoke-test config (Qwen2.5-0.5B, 200 steps).
+# The headline numbers in README.md were produced by Qwen2.5-1.5B-Instruct
+# trained for 300 GRPO steps in the linked Colab notebook (see README.md L20).
 MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
 USE_LORA = True
 MAX_COMPLETION_LENGTH = 128
