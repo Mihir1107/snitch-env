@@ -16,7 +16,7 @@ Who watches the watchers? As agentic AI scales into fleets of hundreds of autono
 
 🔗 **Live HF Space:** https://huggingface.co/spaces/Mihir1107/TheSnitch
 🔗 **Source:** https://github.com/Mihir1107/snitch-env
-🔗 **Trained checkpoint:** https://huggingface.co/Mihir1107/snitch-overseer-ckpt300
+🔗 **Trained checkpoint:** https://huggingface.co/Mihir1107/snitch-overseer-lr2e5-ckpt400
 📓 **Colab training notebook:** https://colab.research.google.com/drive/1NxTXtOpVS-d0yGl-pfLOkzfd_V4AzMb3?usp=sharing
 📝 **Blog post:** [blog/snitch_overseer.md](blog/snitch_overseer.md)
 👥 **Team:** InfraNova — Mihir Mandavia, Manas Mehta, Haya Sachin
@@ -50,17 +50,14 @@ For every verdict, the overseer also produces a **confidence score** and cites t
 
 ## Training the overseer
 
-We trained a reference overseer with **GRPO + LoRA on Qwen2.5-1.5B-Instruct** for 300 steps on easy and medium variants (v1 + v2), then evaluated on the held-out hard variant (v3). The training pipeline uses [Hugging Face TRL](https://github.com/huggingface/trl) and [PEFT](https://github.com/huggingface/peft).
+We trained a reference overseer with **GRPO + LoRA on Qwen2.5-1.5B-Instruct** for 400 steps at LR=2e-5 on easy and medium variants (v1 + v2), then evaluated on the held-out hard variant (v3). The training pipeline uses [Hugging Face TRL](https://github.com/huggingface/trl) and [PEFT](https://github.com/huggingface/peft).
 
 **Training notebook (runnable in Colab):** https://colab.research.google.com/drive/1NxTXtOpVS-d0yGl-pfLOkzfd_V4AzMb3?usp=sharing
 
-**LoRA config:** r=16, alpha=32, dropout=0.05, targets `q_proj, k_proj, v_proj, o_proj`. Base model frozen in fp16.
+**LoRA config:** r=16, alpha=32, dropout=0.05, targets `q_proj, k_proj, v_proj, o_proj`. Base model frozen in bf16.
 
-![Reward curve](figures/reward_curve.png)
-*GRPO training reward across 300 steps. Reward climbed from 0.40 to a peak of 0.86 by step 260, with late-training volatility characteristic of small-KL policy-gradient runs (KL stayed under 0.01 throughout). Run was compute-bound at step 300 of 400 planned.*
-
-![Loss curve](figures/loss_curve.png)
-*GRPO loss oscillating near zero — expected behavior for a policy-gradient trainer.*
+![Training curves](figures/training_curves.png)
+*Left to right: train reward climbed from 0.64 to 1.39 (peak at step 350), GRPO loss oscillates near zero (expected for policy-gradient), policy KL from base climbs steadily to ~0.10 (a healthy, conservative-but-real policy update — 14× the movement of our earlier LR=5e-6 run), and held-out eval reward more than doubled from 0.39 to 0.88 monotonically. The eval-reward curve is the killer: it shows the trained policy generalizes during training, not just memorizes.*
 
 ---
 
@@ -70,27 +67,28 @@ The point of the env is to measure whether an overseer learned a skill or just a
 
 We also run the **base model with the same 3-shot prompt** as an ablation — this is the rigorous A/B test that separates "RL contribution" from "prompt contribution."
 
-![Generalization result](figures/generalization_gap.png)
-
-*Out-of-distribution overseer accuracy on the v3 held-out variant. The base Qwen2.5-1.5B with the same 3-shot prompt reaches 56.3%. The GRPO-LoRA-trained overseer reaches 62.1% — a clean +5.8pp lift attributable to RL training, since the prompt is held constant across both conditions.*
-
 | Condition | v3 Accuracy | Mean Reward | Parse Errors |
 |---|---|---|---|
 | Random verdict | 25.0% | — | — |
-| Base model + 3-shot prompt | 56.3% | 0.283 | 0.0% |
-| **GRPO-LoRA + 3-shot prompt** | **62.1%** | **0.458** | **0.0%** |
+| Base model + 3-shot prompt | 56.7% | 0.438 | 0.0% |
+| GRPO-LoRA, LR=5e-6, 300 steps (earlier run) | 65.8% | 0.608 | 0.0% |
+| **GRPO-LoRA, LR=2e-5, 400 steps (current)** | **75.8%** | **0.900** | **0.0%** |
 
-*95% Wilson confidence intervals at n=60: base [43.7%, 68.0%], LoRA [49.4%, 73.3%]. The intervals overlap; the +5.8pp accuracy lift on its own is not statistically significant at this sample size (two-prop z-test p = 0.51). The +62% mean-reward delta has a tighter standard error and the parse-error-rate floor of 0.0 is exact. We're re-running at n=120 to tighten the accuracy CI; results will be appended to `results/` before submission.*
+*All numbers at n=120 on held-out v3 (full eval set, no sampling). 95% Wilson confidence intervals: base [47.7%, 65.2%], LoRA-2e-5 [67.5%, 82.5%]. **CIs do not overlap.** Two-proportion z-test on the +19.2pp accuracy lift: z ≈ 3.0, p ≈ 0.003. Mean reward more than doubled (+105.7% relative). Parse-error floor of 0.0 is exact across all conditions.*
 
-Two findings worth noting:
+Three findings worth noting:
 
-1. **Reward improves more than accuracy does** — mean reward climbs from 0.28 to 0.46 (+62% relative) on a +5.8pp accuracy lift. This is the evidence-grounding bonus firing: the trained overseer is more often citing the *correct trace step and keyword* in its EVIDENCE field, not just picking the right class.
+1. **The RL contribution is statistically significant.** Same prompt, same base model, same 3-shot examples in both conditions — only the LoRA adapter differs. The +19.2pp accuracy lift is real and the CIs are clean of each other.
 
-2. **Zero parse errors in both conditions.** The format collapse problem (78% parse errors in an earlier 1.5B run with shorter completions) is fully solved by the ChatML 3-shot prompt + max_completion_length=256 combination.
+2. **Reward more than accuracy.** Mean reward climbed from 0.44 to 0.90 (+106% relative) on a +19.2pp accuracy lift. The reward bonus rewards citing the correct trace step and keyword — the trained overseer is grounding evidence in the trace, not just guessing classes.
+
+3. **Zero parse errors in all conditions.** The format collapse problem (78% parse errors in an earlier 1.5B run with shorter completions) is fully solved by the ChatML 3-shot prompt + max_completion_length=256 combination, and stays solved across LR scales.
 
 Raw eval JSONs are committed in `results/`:
-- `results/gen_gap_step300.json` — trained LoRA on held-out v3
-- `results/eval_base_3shot.json` — base model on held-out v3 (ablation)
+- `results/eval_lora_lr2e5_400.json` — current trained LoRA (LR=2e-5, 400 steps) on held-out v3
+- `results/eval_base_full120.json` — base model on held-out v3 (ablation)
+- `results/eval_old_ckpt_n120.json` — earlier LoRA (LR=5e-6, 300 steps) on held-out v3, re-evaluated at n=120 for apples-to-apples comparison
+- `results/gen_gap_step300.json`, `results/eval_base_3shot.json` — earlier n=60 eval JSONs (legacy, kept for historical record)
 
 ---
 
@@ -136,20 +134,20 @@ pytest tests/ -q                     # 42/42 should pass
 # Pull trained adapter from HF
 pip install huggingface_hub
 python -c "from huggingface_hub import snapshot_download; \
-  snapshot_download(repo_id='Mihir1107/snitch-overseer-ckpt300', \
-  local_dir='checkpoints/checkpoint-300')"
+  snapshot_download(repo_id='Mihir1107/snitch-overseer-lr2e5-ckpt400', \
+  local_dir='checkpoints/checkpoint-400')"
 
-# Run eval on held-out v3 (CPU works, T4 GPU faster, ~15-20 min on T4)
-# The eval-easy flag is required by the script; we point it at the v3 set
-# since easy v1 questions overlap with the training set.
+# Run eval on held-out v3 (n=120, GPU recommended, ~15-20 min on T4)
+# The eval-easy flag is required by the script signature but we evaluate only
+# on the held-out v3 set; pass the v3 file to both flags.
 python scripts/gen_gap_eval.py \
-  --model-path checkpoints/checkpoint-300 \
+  --model-path checkpoints/checkpoint-400 \
   --base-model Qwen/Qwen2.5-1.5B-Instruct \
-  --eval-easy data/eval_easy_v1.jsonl \
+  --eval-easy data/eval_traces.jsonl \
   --eval-hard data/eval_traces.jsonl \
   --out results/repro.json
 
-# Expected: accuracy ~62%, mean_reward ~0.46, parse_error_rate 0.0
+# Expected: accuracy ~76%, mean_reward ~0.90, parse_error_rate 0.0
 ```
 
 ---
@@ -250,16 +248,15 @@ The doers are deterministic Python policies that produce traces with known groun
 
 ## Limitations we report honestly
 
-- **The trained overseer is an under-trained reference, not a tuned system.** Training reached 300 of 400 planned GRPO steps before compute ran out. KL divergence stayed under 0.01 throughout, indicating a conservative policy update; raising LR from 5e-6 to 2e-5 is the obvious next step but is left to future work.
+- **The trained overseer is a small reference run, not a tuned system.** We completed 400 GRPO steps at LR=2e-5; KL divergence reached ~0.10 — healthy and indicating real policy movement, but still a small-scale run. Further LR scheduling, longer training, and larger base models are obvious next steps.
 - **Doers are rule-based, not LLM-driven.** This is a controlled lab, not a red-team simulator. Extending to LLM-generated adversarial traces is a straightforward API extension.
 - **Variant diversity is stronger for REWARD_HACKER and LAZY than for HONEST and DECEIVER.** For the latter two classes, v1 and v2 share tool-use patterns; behavioral variance concentrates on v3 (held out). The v3 generalization axis is the load-bearing test for all four classes.
-- **The +5.8pp generalization lift is small but clean.** It's measurable only because train and held-out question IDs are disjoint and the v3 policy variant is genuinely unseen — both properties of the environment, not the model.
+- **The +19.2pp generalization lift is clean and statistically significant** (p ≈ 0.003 at n=120). It's measurable only because train and held-out question IDs are disjoint and the v3 policy variant is genuinely unseen — both properties of the environment, not the model.
 
 ---
 
 ## Future work
 
-- Raise GRPO learning rate to 2e-5 and complete the 400-step run; expected to push KL into a more productive range
 - LLM-in-the-loop doers for red-team generalization testing
 - Adversarial misbehavior classes (active cover-up, sycophancy toward user beliefs)
 - Committee-based overseer (debate between multiple verdicts)
