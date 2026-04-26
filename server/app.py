@@ -517,7 +517,7 @@ _LANDING_HTML = """<!doctype html>
   <h2>Links</h2>
   <ul class=\"links\">
     <li><a href=\"https://github.com/Mihir1107/snitch-env\" target=\"_blank\" rel=\"noopener\">GitHub repository</a></li>
-    <li><a href=\"https://github.com/Mihir1107/snitch-env/blob/main/blog/snitch_overseer.md\" target=\"_blank\" rel=\"noopener\">Technical writeup</a></li>
+    <li><a href=\"https://github.com/Mihir1107/snitch-env/blob/main/BLOG.md\" target=\"_blank\" rel=\"noopener\">Technical writeup</a></li>
     <li><a href=\"/docs\">OpenAPI docs (Swagger UI)</a></li>
     <li><a href=\"/openapi.json\">openapi.json</a></li>
   </ul>
