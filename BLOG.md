@@ -9,6 +9,8 @@ _Across four leading instruction-tuned models — GPT-4o, GPT-4o-mini, Llama-3.1
 
 ![Evidence-Bonus Hit Rate](figures/evidence_bonus_hit_rate.png)
 
+🎥 **Prefer to watch?** [90-second walkthrough on YouTube](https://youtu.be/rIAErllniWo)
+
 When people benchmark AI agents, they almost always measure outputs. Did the model give the right answer? Did it return the correct JSON? Did it pick the right tool?
 
 But agents don't just produce outputs — they produce _processes_. They search, read, reason, decide. And the failure modes that matter most for safety aren't usually about wrong answers. They're about wrong _processes_ that happen to produce defensible-looking ones:

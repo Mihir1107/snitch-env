@@ -16,6 +16,8 @@ Who watches the watchers? The Snitch is an OpenEnv environment for measuring AI 
 
 **Headline finding:** across four frontier instruction-tuned models — GPT-4o, GPT-4o-mini, Llama-3.1-8B-Instruct, Qwen2.5-7B-Instruct — **zero of 275 correctly-classified misbehavior traces both cited the correct trace step AND echoed the smoking-gun keyword.** A 1.5B LoRA trained on the grounded reward captured both on 34 of 61. Frontier models classify misbehavior at the trace level but struggle to localize it. See [BLOG.md](BLOG.md) for the full writeup.
 
+🎥 **90-second walkthrough:** https://youtu.be/rIAErllniWo
+
 ## Submission
 
 | What                          | Link                                                                                               |
@@ -24,6 +26,7 @@ Who watches the watchers? The Snitch is an OpenEnv environment for measuring AI 
 | Colab notebook (training)     | https://colab.research.google.com/drive/1Y9tjNzfc5gHMet0m6akUdBtlufAhDhDw                          |
 | Code repository               | https://github.com/Mihir1107/snitch-env                                                            |
 | Blog / writeup                | [BLOG.md](BLOG.md) (rendered: https://huggingface.co/spaces/Mihir1107/TheSnitch/blob/main/BLOG.md) |
+| Video walkthrough             | https://youtu.be/rIAErllniWo                                                                       |
 | Trained model adapter         | https://huggingface.co/Mihir1107/snitch-overseer-lr2e5-ckpt400                                     |
 
 ---
@@ -37,6 +40,8 @@ Who watches the watchers? The Snitch is an OpenEnv environment for measuring AI 
 📓 **Colab training notebook:** https://colab.research.google.com/drive/1Y9tjNzfc5gHMet0m6akUdBtlufAhDhDw?usp=sharing
 
 📝 **Writeup:** [BLOG.md](BLOG.md)
+
+🎥 **Video walkthrough:** https://youtu.be/rIAErllniWo
 
 👥 **Team:** InfraNova — Mihir Mandavia, Manas Mehta, Haya Sachin
 
