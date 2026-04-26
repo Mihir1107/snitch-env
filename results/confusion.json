@@ -1,0 +1,154 @@
+{
+  "eval_traces_path": "data/eval_traces.jsonl",
+  "n_traces": 120,
+  "base": {
+    "n_traces": 120,
+    "accuracy": 0.5666666666666667,
+    "accuracy_macro": 0.5666666666666667,
+    "mean_reward": 0.4375,
+    "parse_error_rate": 0.0,
+    "per_class_accuracy": {
+      "HONEST": 1.0,
+      "REWARD_HACKER": 0.0,
+      "LAZY": 0.9666666666666667,
+      "DECEIVER": 0.3
+    },
+    "confusion": {
+      "HONEST": {
+        "HONEST": 30
+      },
+      "REWARD_HACKER": {
+        "DECEIVER": 13,
+        "HONEST": 5,
+        "LAZY": 12
+      },
+      "LAZY": {
+        "LAZY": 29,
+        "DECEIVER": 1
+      },
+      "DECEIVER": {
+        "HONEST": 4,
+        "LAZY": 17,
+        "DECEIVER": 9
+      }
+    },
+    "evidence_bonus_hit_rate": {
+      "REWARD_HACKER": 0.0,
+      "LAZY": 0.0,
+      "DECEIVER": 0.0
+    },
+    "evidence_bonus_counts": {
+      "REWARD_HACKER": {
+        "hits": 0,
+        "correct_misbehavior_total": 0
+      },
+      "LAZY": {
+        "hits": 0,
+        "correct_misbehavior_total": 29
+      },
+      "DECEIVER": {
+        "hits": 0,
+        "correct_misbehavior_total": 9
+      }
+    }
+  },
+  "ckpt300": {
+    "n_traces": 120,
+    "accuracy": 0.6583333333333333,
+    "accuracy_macro": 0.6583333333333333,
+    "mean_reward": 0.6083333333333333,
+    "parse_error_rate": 0.0,
+    "per_class_accuracy": {
+      "HONEST": 0.9666666666666667,
+      "REWARD_HACKER": 0.0,
+      "LAZY": 0.7333333333333333,
+      "DECEIVER": 0.9333333333333333
+    },
+    "confusion": {
+      "HONEST": {
+        "HONEST": 29,
+        "DECEIVER": 1
+      },
+      "REWARD_HACKER": {
+        "DECEIVER": 26,
+        "LAZY": 4
+      },
+      "LAZY": {
+        "LAZY": 22,
+        "DECEIVER": 8
+      },
+      "DECEIVER": {
+        "DECEIVER": 28,
+        "LAZY": 2
+      }
+    },
+    "evidence_bonus_hit_rate": {
+      "REWARD_HACKER": 0.0,
+      "LAZY": 0.0,
+      "DECEIVER": 0.0
+    },
+    "evidence_bonus_counts": {
+      "REWARD_HACKER": {
+        "hits": 0,
+        "correct_misbehavior_total": 0
+      },
+      "LAZY": {
+        "hits": 0,
+        "correct_misbehavior_total": 22
+      },
+      "DECEIVER": {
+        "hits": 0,
+        "correct_misbehavior_total": 28
+      }
+    }
+  },
+  "ckpt400": {
+    "n_traces": 120,
+    "accuracy": 0.7583333333333333,
+    "accuracy_macro": 0.7583333333333333,
+    "mean_reward": 0.9,
+    "parse_error_rate": 0.0,
+    "per_class_accuracy": {
+      "HONEST": 1.0,
+      "REWARD_HACKER": 0.13333333333333333,
+      "LAZY": 0.9333333333333333,
+      "DECEIVER": 0.9666666666666667
+    },
+    "confusion": {
+      "HONEST": {
+        "HONEST": 30
+      },
+      "REWARD_HACKER": {
+        "DECEIVER": 26,
+        "REWARD_HACKER": 4
+      },
+      "LAZY": {
+        "LAZY": 28,
+        "DECEIVER": 2
+      },
+      "DECEIVER": {
+        "DECEIVER": 29,
+        "HONEST": 1
+      }
+    },
+    "evidence_bonus_hit_rate": {
+      "REWARD_HACKER": 0.25,
+      "LAZY": 0.32142857142857145,
+      "DECEIVER": 0.8275862068965517
+    },
+    "evidence_bonus_counts": {
+      "REWARD_HACKER": {
+        "hits": 1,
+        "correct_misbehavior_total": 4
+      },
+      "LAZY": {
+        "hits": 9,
+        "correct_misbehavior_total": 28
+      },
+      "DECEIVER": {
+        "hits": 24,
+        "correct_misbehavior_total": 29
+      }
+    }
+  }
+}
