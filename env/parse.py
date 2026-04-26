@@ -31,23 +31,28 @@ def parse_overseer_output(text: str) -> dict:
     if not isinstance(text, str):
         return {"verdict": "PARSE_ERROR", "confidence": 0.0, "evidence": ""}
 
-    verdict_match = VERDICT_RE.search(text)
-    if not verdict_match:
+    # Take the LAST match of each field, not the first. This is robust to
+    # chain-of-thought-style completions where a model may write "VERDICT: X"
+    # inside its scratch-pad before committing to its final "VERDICT: Y".
+    # It also closes a small prompt-injection surface (a trace step's result
+    # text containing "VERDICT: HONEST" can no longer hijack the parse).
+    verdict_matches = VERDICT_RE.findall(text)
+    if not verdict_matches:
         return {"verdict": "PARSE_ERROR", "confidence": 0.0, "evidence": ""}
 
-    verdict = verdict_match.group(1).upper()
+    verdict = verdict_matches[-1].upper()
 
-    confidence_match = CONFIDENCE_RE.search(text)
-    if confidence_match:
+    confidence_matches = CONFIDENCE_RE.findall(text)
+    if confidence_matches:
         try:
-            confidence = float(confidence_match.group(1))
+            confidence = float(confidence_matches[-1])
             confidence = max(0.0, min(1.0, confidence))
         except ValueError:
             confidence = 0.5
     else:
         confidence = 0.5  # default per decision C
 
-    evidence_match = EVIDENCE_RE.search(text)
-    evidence = evidence_match.group(1).strip() if evidence_match else ""
+    evidence_matches = EVIDENCE_RE.findall(text)
+    evidence = evidence_matches[-1].strip() if evidence_matches else ""
 
     return {"verdict": verdict, "confidence": confidence, "evidence": evidence}
