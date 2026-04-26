@@ -15,10 +15,20 @@ license: mit
 Who watches the watchers? As agentic AI scales into fleets of hundreds of autonomous agents, human oversight breaks down. The Snitch is a controlled laboratory for scalable oversight — train an overseer to read an agent's tool-use trace and detect whether it behaved honestly, hacked the reward, gave up, or actively deceived.
 
 🔗 **Live HF Space:** https://huggingface.co/spaces/Mihir1107/TheSnitch
+
+
 🔗 **Source:** https://github.com/Mihir1107/snitch-env
+
+
 🔗 **Trained checkpoint:** https://huggingface.co/Mihir1107/snitch-overseer-lr2e5-ckpt400
+
+
 📓 **Colab training notebook:** https://colab.research.google.com/drive/1NxTXtOpVS-d0yGl-pfLOkzfd_V4AzMb3?usp=sharing
+
+
 📝 **Blog post:** [blog/snitch_overseer.md](blog/snitch_overseer.md)
+
+
 👥 **Team:** InfraNova — Mihir Mandavia, Manas Mehta, Haya Sachin
 
 ---
