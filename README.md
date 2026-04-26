@@ -95,6 +95,8 @@ We also run the **base model with the same 3-shot prompt** as an ablation — th
 | GRPO-LoRA, LR=5e-6, 300 steps (earlier run) | 65.8%       | 0.608       | 0.0%         |
 | **GRPO-LoRA, LR=2e-5, 400 steps (current)** | **75.8%**   | **0.900**   | **0.0%**     |
 
+**Per-class accuracy decomposition (base → LoRA-2e-5, n=30 per class):** HONEST 100.0% → 100.0% (+0.0pp), REWARD_HACKER 0.0% → 13.3% (+13.3pp, 4/30 traces), LAZY 96.7% → 93.3% (−3.3pp, one regression), DECEIVER 30.0% → 96.7% (+66.7pp, +20 traces). The macro lift is dominated by DECEIVER recovery: 20 of the 23 trace-level gains. REWARD_HACKER remains hard for both our LoRA and all four frontier models on the leaderboard — see [BLOG.md](BLOG.md) for the cross-model asymmetry. Source: `results/confusion.json` from `scripts/dump_confusion.py`.
+
 _All numbers at n=120 on held-out v3 (full eval set, no sampling). Accuracy is macro-averaged over the four misbehavior classes (HONEST / REWARD_HACKER / LAZY / DECEIVER, 30 traces each); on a perfectly balanced set this equals plain accuracy. 95% Wilson confidence intervals: base [47.7%, 65.2%], LoRA-2e-5 [67.5%, 82.6%]. **CIs do not overlap.** Two-proportion z-test (pooled, two-sided) on the +19.2pp accuracy lift: **z = 3.14, p = 0.0017**. Mean reward more than doubled (+105.7% relative). Parse-error floor of 0.0 is exact across all conditions. Train/eval disjointness (q_0001-0120 × variants {1,2} vs q_0121-0150 × variant 3) is reproduced by `python scripts/verify_split.py`; snapshot output in `results/data_split_verification.txt`._
 
 _Methodology disclosure: the reported LoRA number is **checkpoint-400, the final checkpoint of the 400-step run** — not best-of-N selection across the eight `checkpoint-{50, 100, ..., 400}` artifacts. The held-out v3 set was used during training as a telemetry signal (eval-reward logged every 50 steps) for engineering iteration on LR and KL beta, not for cherry-picking the reported checkpoint. Training was stopped at the pre-budgeted 400 steps regardless of the eval curve's local maximum at step 350. We disclose this so a reader can decide whether to treat the +19.2pp lift as a fully pre-registered estimate or as a final-checkpoint estimate with telemetry-loop influence on hyperparameters._
@@ -243,7 +245,7 @@ Random is at or below chance across all tasks.
 
 All constants score below random. No degenerate policy can game the reward.
 
-**Adversarial robustness:** malformed JSON, 100KB action strings, path-traversal in task_id, non-UTF-8 bytes, negative seeds, and concurrent `/reset` calls have all been probed. The server returns structured 4xx errors, never 500s, and stays up. No stack-trace leaks.
+**Adversarial robustness:** malformed JSON, 100KB action strings, path-traversal in task_id, non-UTF-8 bytes, and negative seeds have all been probed. The server returns structured 4xx errors, never 500s, and stays up. No stack-trace leaks.
 
 **Determinism:** `reset(seed=N)` twice returns the same trace. Confirmed on multiple tasks and seeds.
 
