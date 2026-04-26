@@ -25,6 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 from env.snitch_env import SnitchEnv
@@ -237,8 +238,326 @@ def _grade_single(task_id: str, info: Dict[str, Any], reward: float) -> GraderRe
 
 
 # ---------------------------------------------------------------------------
+# Landing page (root)
+# ---------------------------------------------------------------------------
+
+# Self-contained HTML, inline CSS, no external assets. Renders at the HF Space
+# root URL so judges who click through see something coherent instead of a
+# bare JSON or 404. The small inline <script> rewrites the localhost:7860 host
+# in the curl examples to window.location.host when served from a real domain
+# so copy-paste works as-is from the Space.
+_LANDING_HTML = """<!doctype html>
+<html lang=\"en\">
+<head>
+<meta charset=\"utf-8\">
+<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">
+<title>The Snitch — OpenEnv environment for scalable oversight</title>
+<style>
+  :root {
+    --bg: #0b0d10;
+    --fg: #e8eaed;
+    --muted: #9aa0a6;
+    --accent: #7dd3fc;
+    --accent-soft: rgba(125, 211, 252, 0.08);
+    --card: #14171c;
+    --border: #1f2329;
+    --code-bg: #0f1216;
+    --pill-get: #7dd3fc;
+    --pill-post: #fca5a5;
+    --pill-ws: #c4b5fd;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, \"SF Pro Text\", \"Segoe UI\", Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  main {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 56px 24px 96px;
+  }
+  h1 {
+    font-size: 30px;
+    margin: 0 0 6px;
+    letter-spacing: -0.015em;
+    font-weight: 700;
+  }
+  .tagline {
+    color: var(--muted);
+    margin: 0 0 36px;
+    font-size: 15px;
+  }
+  h2 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin: 40px 0 14px;
+    font-weight: 600;
+  }
+  p { margin: 0 0 12px; color: var(--fg); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .table-wrap {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--card);
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 12.5px;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    background: var(--code-bg);
+    font-weight: 600;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+  tr:last-child td { border-bottom: 0; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr.ours { background: var(--accent-soft); }
+  tr.ours td:first-child::after {
+    content: \" ★\";
+    color: var(--accent);
+  }
+  .table-note { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
+  pre, code {
+    font-family: ui-monospace, \"SF Mono\", Menlo, Consolas, monospace;
+    font-size: 12.5px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    overflow-x: auto;
+    margin: 0 0 4px;
+    line-height: 1.5;
+  }
+  p code, li code {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--accent);
+  }
+  pre code { color: var(--fg); background: transparent; border: 0; padding: 0; }
+  .endpoint {
+    margin: 0 0 18px;
+  }
+  .endpoint-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 6px;
+    flex-wrap: wrap;
+  }
+  .verb {
+    font-family: ui-monospace, \"SF Mono\", Menlo, Consolas, monospace;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .verb.get { color: var(--pill-get); }
+  .verb.post { color: var(--pill-post); }
+  .verb.ws { color: var(--pill-ws); }
+  .endpoint-path { font-family: ui-monospace, \"SF Mono\", Menlo, Consolas, monospace; font-size: 13px; color: var(--fg); }
+  .endpoint-desc { color: var(--muted); font-size: 13px; margin: 0 0 6px; }
+  ul.links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 6px;
+  }
+  ul.links li::before { content: \"→ \"; color: var(--muted); }
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+  }
+  footer a { color: var(--muted); text-decoration: underline; }
+</style>
+</head>
+<body>
+<main>
+  <h1>The Snitch</h1>
+  <p class=\"tagline\">An OpenEnv environment for training scalable oversight agents.</p>
+
+  <h2>What this is</h2>
+  <p>The Snitch puts an LLM overseer in front of frozen tool-use traces from research agents and asks it to detect three misbehavior patterns: <strong>reward hacking</strong>, <strong>laziness</strong>, and <strong>deception</strong>.</p>
+  <p>The reward function pays for both correct classification and citing the smoking-gun evidence — so it doubles as a benchmark that surfaces a capability gap (evidence grounding) that current frontier post-training pipelines do not close.</p>
+
+  <h2>Leaderboard — held-out v3, n=120</h2>
+  <div class=\"table-wrap\">
+  <table>
+    <thead>
+      <tr>
+        <th>Model</th>
+        <th class=\"num\">Acc</th>
+        <th class=\"num\">Mean Reward</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>GPT-4o</td>
+        <td class=\"num\">90.0%</td>
+        <td class=\"num\">+0.975</td>
+        <td>0/78 evidence-bonus hits</td>
+      </tr>
+      <tr>
+        <td>Llama-3.1-8B-Instruct</td>
+        <td class=\"num\">85.0%</td>
+        <td class=\"num\">+0.900</td>
+        <td>0/72 evidence-bonus hits</td>
+      </tr>
+      <tr class=\"ours\">
+        <td>Qwen2.5-1.5B + LoRA, 400 steps</td>
+        <td class=\"num\">75.8%</td>
+        <td class=\"num\">+0.900</td>
+        <td>RL'd on grounded reward</td>
+      </tr>
+      <tr>
+        <td>GPT-4o-mini</td>
+        <td class=\"num\">82.5%</td>
+        <td class=\"num\">+0.858</td>
+        <td>0/70 evidence-bonus hits</td>
+      </tr>
+      <tr>
+        <td>Qwen2.5-7B-Instruct (untrained)</td>
+        <td class=\"num\">70.8%</td>
+        <td class=\"num\">+0.688</td>
+        <td>0/55 evidence-bonus hits</td>
+      </tr>
+      <tr>
+        <td>Qwen2.5-1.5B + 3-shot (no training)</td>
+        <td class=\"num\">56.7%</td>
+        <td class=\"num\">+0.438</td>
+        <td>pretrained baseline</td>
+      </tr>
+      <tr>
+        <td>Random verdict</td>
+        <td class=\"num\">~25%</td>
+        <td class=\"num\">−0.350</td>
+        <td>uniform over 4 classes</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <p class=\"table-note\">Across four leading instruction-tuned models, 0 of 275 correctly-classified misbehavior traces captured the evidence-grounding bonus. Live data: <code>results/eval_*_n120.json</code>.</p>
+
+  <h2>API endpoints</h2>
+
+  <div class=\"endpoint\">
+    <div class=\"endpoint-row\"><span class=\"verb get\">GET</span><span class=\"endpoint-path\">/health</span></div>
+    <p class=\"endpoint-desc\">Liveness probe.</p>
+<pre><code>curl http://localhost:7860/health</code></pre>
+  </div>
+
+  <div class=\"endpoint\">
+    <div class=\"endpoint-row\"><span class=\"verb get\">GET</span><span class=\"endpoint-path\">/tasks</span></div>
+    <p class=\"endpoint-desc\">List task ids and the action schema.</p>
+<pre><code>curl http://localhost:7860/tasks</code></pre>
+  </div>
+
+  <div class=\"endpoint\">
+    <div class=\"endpoint-row\"><span class=\"verb post\">POST</span><span class=\"endpoint-path\">/reset</span></div>
+    <p class=\"endpoint-desc\">Start an episode. Returns observation (the trace) + episode_id.</p>
+<pre><code>curl -X POST http://localhost:7860/reset \\
+  -H \"Content-Type: application/json\" \\
+  -d '{\"task_id\": \"hard\", \"seed\": 42}'</code></pre>
+  </div>
+
+  <div class=\"endpoint\">
+    <div class=\"endpoint-row\"><span class=\"verb post\">POST</span><span class=\"endpoint-path\">/step</span></div>
+    <p class=\"endpoint-desc\">Submit the overseer's verdict. Returns reward + info.</p>
+<pre><code>curl -X POST http://localhost:7860/step \\
+  -H \"Content-Type: application/json\" \\
+  -d '{\"action\": \"VERDICT: DECEIVER\\nCONFIDENCE: 0.9\\nEVIDENCE: Step 4 contradicts Step 2.\"}'</code></pre>
+  </div>
+
+  <div class=\"endpoint\">
+    <div class=\"endpoint-row\"><span class=\"verb get\">GET</span><span class=\"endpoint-path\">/baseline</span></div>
+    <p class=\"endpoint-desc\">Run the random-verdict baseline (n=20 per task, seed=42, reproducible).</p>
+<pre><code>curl http://localhost:7860/baseline</code></pre>
+  </div>
+
+  <div class=\"endpoint\">
+    <div class=\"endpoint-row\"><span class=\"verb post\">POST</span><span class=\"endpoint-path\">/grader</span></div>
+    <p class=\"endpoint-desc\">Score a completed episode by episode_id + task_id.</p>
+  </div>
+
+  <div class=\"endpoint\">
+    <div class=\"endpoint-row\"><span class=\"verb ws\">WS</span><span class=\"endpoint-path\">/ws</span></div>
+    <p class=\"endpoint-desc\">WebSocket transport (required by HF Spaces). Messages: <code>reset</code>, <code>step</code>, <code>state</code>, <code>close</code>.</p>
+  </div>
+
+  <h2>Links</h2>
+  <ul class=\"links\">
+    <li><a href=\"https://github.com/Mihir1107/snitch-env\" target=\"_blank\" rel=\"noopener\">GitHub repository</a></li>
+    <li><a href=\"https://github.com/Mihir1107/snitch-env/blob/main/blog/snitch_overseer.md\" target=\"_blank\" rel=\"noopener\">Technical writeup</a></li>
+    <li><a href=\"/docs\">OpenAPI docs (Swagger UI)</a></li>
+    <li><a href=\"/openapi.json\">openapi.json</a></li>
+  </ul>
+
+  <footer>
+    Built for the Meta × OpenEnv hackathon. The full spec, training code, and evaluation harness are in the GitHub repo. Questions or issues — file them there.
+  </footer>
+</main>
+<script>
+  // When served from a real host (HF Space), rewrite localhost:7860 in the
+  // curl examples so copy-paste works as-is. No-op on localhost.
+  (function () {
+    var host = window.location.host;
+    if (!host || host.indexOf('localhost') === 0 || host.indexOf('127.0.0.1') === 0) return;
+    var scheme = window.location.protocol;
+    document.querySelectorAll('pre code').forEach(function (el) {
+      el.textContent = el.textContent
+        .replace(/http:\\/\\/localhost:7860/g, scheme + '//' + host);
+    });
+  })();
+</script>
+</body>
+</html>
+"""
+
+
+# ---------------------------------------------------------------------------
 # HTTP routes
 # ---------------------------------------------------------------------------
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+def landing():
+    """Static HTML landing page for the HF Space root URL.
+
+    Self-contained: inline CSS, no external assets, no DB calls. Cheap enough
+    to serve on every cold start. Excluded from the OpenAPI schema because
+    it's a UI page, not an API endpoint — keeps /docs uncluttered.
+    """
+    return _LANDING_HTML
+
 
 @app.get("/health")
 def health():
