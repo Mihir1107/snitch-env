@@ -27,3 +27,6 @@ baseline_check.py
 # Kept in .gitignore so a stale local copy can never sneak back into the repo.
 # Real held-out eval is data/eval_traces.jsonl (q_0121-0150, variant 3).
 data/eval_easy_v1.jsonl
+
+# Eval logs (large, regenerated per run, not deliverables)
+results/*.log
