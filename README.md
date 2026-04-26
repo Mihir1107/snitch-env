@@ -78,6 +78,8 @@ We trained a reference overseer with **GRPO + LoRA on Qwen2.5-1.5B-Instruct** fo
 ![Training curves](figures/training_curves.png)
 _Left to right: train reward climbed from 0.64 to 1.39 (peak at step 350), GRPO loss oscillates near zero (expected for policy-gradient), policy KL from base climbs steadily to ~0.10 (a healthy, conservative-but-real policy update — 14× the movement of our earlier LR=5e-6 run), and held-out eval reward more than doubled from 0.39 to 0.88 monotonically. The eval-reward curve is the killer: it shows the trained policy generalizes during training, not just memorizes._
 
+**Experimental tracking.** TRL's `GRPOTrainer` is configured with `report_to="tensorboard"`, writing event files to `runs/` for any re-runner. For the reference run shown above, per-step metrics are captured inline as cell outputs in the [Colab training notebook](https://colab.research.google.com/drive/1Y9tjNzfc5gHMet0m6akUdBtlufAhDhDw) and exported to `figures/training_curves.png`.
+
 ---
 
 ## Out-of-distribution evaluation

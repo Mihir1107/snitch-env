@@ -186,7 +186,7 @@ def main():
         save_strategy="steps",
         eval_strategy="steps",
         bf16=torch.cuda.is_available(),
-        report_to="none",
+        report_to="tensorboard",
         remove_unused_columns=False,
         # TRL 1.2 helpful: see what the model outputs during training
         log_completions=True,
